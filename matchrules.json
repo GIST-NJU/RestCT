@@ -1,0 +1,150 @@
+{
+  "AllOrNone": [
+    {
+      "represent": "p1OR(p2p3)",
+      "pattern": [{"LOWER": "only"}, {"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable"]}}, {"LOWER": "and"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LOWER": "not"}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "constraint": ["(CC = 'None') => (AA != 'None' && BB = 'None')", "(AA != 'None' && BB = 'None') => (CC = 'None')"],
+      "example": "If and only if Condition is specified and KeyPrefixEquals is not, HttpErrorCodeReturnedEquals is required"
+    },
+    {
+      "represent": "p1p2A",
+      "pattern": [{"LOWER": "only"}, {"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "constraint": ["(AA = 'BB') => (CC != 'None')", "(CC != 'None') => (AA = 'BB')"],
+      "example": "If and only if type is 'finite', quantity is required"
+    },
+    {
+      "represent": "p1p2A",
+      "pattern": [{"LOWER": "only"}, {"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}],
+      "constraint": ["(BB = 'CC') => (AA != 'None')", "(AA != 'None') => (BB = 'CC')"],
+      "example": "If and only if duration_in_months is present, duration must be 'repeating'"
+    },
+    {
+      "represent": "p1p2A",
+      "pattern": [{"LOWER": "only"}, {"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {"LEMMA": {"IN": ["or", "and"]}}, {"ENT_TYPE": "VALUE"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "If and only if travelMode is 'driving' or 'walking', maxDistance is required",
+      "constraint": ["(AA = BB || AA = CC) => (DD != 'None')", "(DD != 'None') => (AA = BB || AA = CC)"]
+    },
+    {
+      "represent": "p1p2A",
+      "pattern": [{"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"},{"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "must"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true}, {"LEMMA": "and"}, {"LEMMA": "viceversa"}],
+      "example": "If type is 'domain', domain must be included, and viceversa",
+      "constraint": ["(AA = BB) => (CC != 'None')", "(CC != 'None') => (AA = BB)"]
+    },
+    {
+      "represent": "p1Ap2",
+      "pattern": [{"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {"LEMMA": {"IN": ["or", "and"]}}, {"ENT_TYPE": "VALUE"}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"OP": "?"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"OP": "*"}, {"LEMMA": "viceversa"}],
+      "example": "If type is 'user' or 'group', emailAddress must be included, and viceversa",
+      "constraint": ["(AA = BB || AA = CC) => (DD != 'None')", "(DD != 'None') => (AA = BB || AA = CC)"]
+    },
+    {
+      "represent": "p1Ap2A",
+      "pattern": [{"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"},{}, {"ENT_TYPE": "VALUE"}, {}, {}, {"ENT_TYPE": "VALUE"},  {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"OP": "?"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "if imagerySet is Birdseye, BirdseyeWithLabels, or Streetside, centerPoint is required.",
+      "constraint": ["(AA = BB || AA = CC || AA = DD) => (EE != 'None')"]
+    },
+    {
+      "represent": "p1Ap2B",
+      "pattern": [{"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"OP": "?"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {"OP": "*"}, {"LEMMA": "viceversa"}],
+      "example": "If role is 'owner', transferOwnership must be 'true', and viceversa",
+      "constraint": ["(AA = BB) => (CC = DD)", "(CC = DD) => (AA = BB)"]
+    }
+  ],
+  "Arithmetic": [
+    {
+      "represent": "p1>p2",
+      "pattern": [{"ENT_TYPE": "PARAM"}, {"OP": "*"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["great", "big"]}}, {"LEMMA": "than"}, {"ENT_TYPE": "PARAM"}],
+      "example": "afterTimestamp must be greater than beforeTimestamp",
+      "constraint": ["AA > BB"]
+    },
+    {
+      "represent": "p1>=p2",
+      "pattern": [{"ENT_TYPE": "PARAM"}, {"OP": "*"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["great", "big"]}}, {"OP": "+"}, {"LEMMA": "than"}, {"ENT_TYPE": "PARAM"}],
+      "example": "created_at[to] must be greater or equal than created_at[from]",
+      "constraint": ["AA >= BB"]
+    }
+  ],
+  "OnlyOne": [
+    {
+      "represent": "XORp1p2",
+      "pattern": [{"LEMMA": "either"}, {"ENT_TYPE": "PARAM"}, {}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {}, {"LEMMA": "not"}, {"LEMMA":  "both"}],
+      "example": "Either address.postalCode or address.region is required, not both",
+      "constraint": ["(AA != 'None') => (BB = 'None')", "(BB = 'None') => (AA != 'None')", "(BB != 'None') => (AA = 'None')", "(AA = 'None') => (BB != 'None')"]
+    },
+    {
+      "represent": "XORp1p2",
+      "pattern": [{"LEMMA": "if"}, {"ENT_TYPE": "PARAM"},  {"LEMMA": "be"}, {"LEMMA": "not"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {}, {"LEMMA": "only"}, {"LEMMA":  "one"}, {"LEMMA": "of"}, {"LEMMA":  "them"}],
+      "example": "If Authorization is not present, readToken is required (only one of them)",
+      "constraint": ["(AA != 'None') => (BB = 'None')", "(BB = 'None') => (AA != 'None')", "(BB != 'None') => (AA = 'None')", "(AA = 'None') => (BB != 'None')"]
+    },
+    {
+      "represent": "XORp1p2",
+      "pattern": [{"ENT_TYPE": "PARAM"}, {"LEMMA": "or"}, {"ENT_TYPE": "PARAM"},  {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "'text' or 'data' is required",
+      "constraint": ["(AA != 'None') => (BB = 'None')", "(BB = 'None') => (AA != 'None')", "(BB != 'None') => (AA = 'None')", "(AA = 'None') => (BB != 'None')"]
+    },
+    {
+      "represent": "XORp1p2",
+      "pattern": [{"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LOWER": "mutually"}, {"LOWER": "exclusive"}, {"LOWER": "from"}, {"ENT_TYPE": "PARAM"}],
+      "example": "'text' is mutually exclusive from 'data'",
+      "constraint": ["(AA != 'None') => (BB = 'None')", "(BB = 'None') => (AA != 'None')", "(BB != 'None') => (AA = 'None')", "(AA = 'None') => (BB != 'None')"]
+    },
+    {
+      "represent": "XORp1p2",
+      "pattern": [{"ENT_TYPE": "PARAM"}, {"LEMMA": "and"}, {"ENT_TYPE": "PARAM"}, {"LEMMA":  "parameter", "OP": "?"}, {"LEMMA": "be"}, {"LOWER": "mutually"}, {"LOWER": "exclusive"}],
+      "example": "'text' and 'data' are mutually exclusive",
+      "constraint": ["(AA != 'None') => (BB = 'None')", "(BB = 'None') => (AA != 'None')", "(BB != 'None') => (AA = 'None')", "(AA = 'None') => (BB != 'None')"]
+    },
+    {
+      "represent": "XORp1ANDp2p3",
+      "pattern": [{"LEMMA": "if"}, {"LEMMA": "neither"}, {"ENT_TYPE": "PARAM"}, {"LOWER": "nor"}, {"ENT_TYPE": "PARAM"}, {"OP": "?"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true, "OP": "?"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "if neither lat nor lng are required, postalcode is provided",
+      "constraint": ["(AA = 'None' && BB = 'None') => (CC != 'None')"]
+    },
+    {
+      "represent": "XORp1ANDp2p3",
+      "pattern": [{"ENT_TYPE": "PARAM"}, {"LOWER": "and"}, {"ENT_TYPE": "PARAM"}, {"OP": "?"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true, "OP": "?"}, {"LOWER": "unless"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "lat and lng required unless postalcode is provided",
+      "constraint": ["(AA != 'None' && BB != 'None') => (CC = 'None')", "(CC = 'None') => (AA != 'None' && BB != 'None')", "(CC != 'None') => (AA = 'None' && BB = 'None')", "(AA = 'None' && BB = 'None') => (CC != 'None')"]
+    },
+    {
+      "represent": "XORp1ANDp2p3",
+      "pattern": [{"LOWER": "if"}, {"ENT_TYPE": "PARAM"}, {"LOWER": "and"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": "not"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "if lat and lng are not present, postalcode is required",
+      "constraint": ["(AA != 'None' && BB != 'None') => (CC = 'None')", "(CC = 'None') => (AA != 'None' && BB != 'None')", "(CC != 'None') => (AA = 'None' && BB = 'None')", "(AA = 'None' && BB = 'None') => (CC != 'None')"]
+    }
+  ],
+  "OR": [
+    {
+      "represent": "OR(p1, p2)",
+      "pattern": [{"LEMMA": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": "not"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "If subscription is not present, customer is required",
+      "constraint": ["(AA = 'None') => (BB != 'None')"]
+    },
+    {
+      "represent": "OR(p1, p2)",
+      "pattern": [{"LEMMA": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": "not"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "If subscription is present, customer is not required",
+      "constraint": ["(AA != 'None') => (BB = 'None')"]
+    }
+  ],
+  "Requires": [
+    {
+      "represent": "p1Ap2",
+      "pattern": [{"LEMMA": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {"IS_PUNCT": true}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "if imagerySet is Birdseye, orientation is required",
+      "constraint": ["(AA = BB) => (CC != 'None')"]
+    },
+    {
+      "represent": "p1p2",
+      "pattern": [{"LEMMA": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {"LEMMA": "or"}, {"ENT_TYPE": "VALUE"}, {}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "if imagerySet is Aerial or AerialWithLabels, zoomLevel is required",
+      "constraint": ["(AA = BB) => (DD != 'None')", "(AA = CC) => (DD != 'None')"]
+    },
+    {
+      "represent": "p1p2Ap3",
+      "pattern": [{"LEMMA": "if"}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"ENT_TYPE": "VALUE"}, {}, {"ENT_TYPE": "VALUE"}, {}, {}, {"ENT_TYPE": "VALUE"}, {}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}],
+      "example": "if centerPoint is specified and imagerySet is Road, Aerial or AerialWithLabels, zoomLevel is required",
+      "constraint": ["(AA != 'None' && BB = CC) => (FF != 'None')", "(AA != 'None' && BB = DD) => (FF != 'None')", "(AA != 'None' && BB = EE) => (FF != 'None')"]
+    }
+  ]
+}
