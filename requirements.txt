@@ -1,0 +1,6 @@
+chardet==4.0.0
+loguru==0.5.3
+pandas==1.2.4
+python_Levenshtein==0.12.2
+requests==2.25.1
+spacy==3.1.1
