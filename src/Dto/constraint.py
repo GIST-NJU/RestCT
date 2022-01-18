@@ -158,24 +158,3 @@ class Constraint:
                 return None
             formattedStr = re.sub(matcher.group(), "{} {} {}".format(paramName, op, valueIndex), formattedStr)
         return formattedStr
-
-
-if __name__ == "__main__":
-    from src.parseJson import parse
-    from src.config import Config
-
-    Config.swagger = "/Users/lixin/Documents/Paper/RestCT/supplementary/specifications/Project.json"
-    Config.patterns = "/Users/lixin/Workplace/Experiment/matchrules.json"
-    parse()
-    from src.Dto.operation import Operation
-    for operation in Operation.members:
-        processor = Processor(operation.parameterList)
-        constraints = processor.parse()
-        operation.addConstraints(constraints)
-    for operation in Operation.members:
-        if len(operation.constraints) > 0:
-            for constraint in operation.constraints:
-                print(constraint.paramNames)
-            for parameter in operation.parameterList:
-                if parameter.isConstrained:
-                    print(parameter.name)

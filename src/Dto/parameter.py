@@ -647,12 +647,3 @@ class DateTime(AbstractParam):
                 except ValueError:
                     pass
             return value
-
-
-if __name__ == "__main__":
-    def PTestP(a, c, b):
-        print("a: {}, b: {}, c: {}".format(a, b, c))
-
-
-    x = {"a": 1, "b": 2, "c": "adfa"}
-    PTestP(**x)

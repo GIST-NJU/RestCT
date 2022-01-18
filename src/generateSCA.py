@@ -251,17 +251,3 @@ class SCA:
         self.uncoveredSet -= newCovered
         SCA.members.append(tuple(sequence))
         return tuple(sequence)
-
-
-if __name__ == "__main__":
-    from src.parseJson import parse
-    from src.config import Config
-
-    Config.swagger = "/Users/lixin/Documents/Paper/RestCT/supplementary/specifications/Project.json"
-    Config.s_strength = 2
-    parse()
-    print("success")
-    sca = SCA()
-    while len(sca.uncoveredSet):
-        sequence = sca.buildSequence()
-        print("sequence length: {:<3d}, uncovered set: {:<6d}".format(len(sequence), len(sca.uncoveredSet)))
