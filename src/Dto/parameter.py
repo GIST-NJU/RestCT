@@ -16,7 +16,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         "specifiedName": info.get(ParamKey.NAME, "") if specifiedName is None else specifiedName,
         "paramType": DataType(info.get(ParamKey.TYPE, DataType.NULL.value)),
         "paramFormat": DataType(info.get(ParamKey.FORMAT, DataType.NULL.value).replace("-", "")),
-        "default": [info.get(ParamKey.DEFAULT)] if info.get(ParamKey) is not None else list(),
+        "default": [info.get(ParamKey.DEFAULT)] if info.get(ParamKey.DEFAULT) is not None else list(),
         "loc": Loc(info.get(ParamKey.LOCATION, Loc.NULL.value)),
         "required": info.get(ParamKey.REQUIRED, False),
         "description": info.get(ParamKey.DESCRIPTION, "")
@@ -217,6 +217,10 @@ class AbstractParam(metaclass=abc.ABCMeta):
 
             if len(self.default) > 0:
                 self.domain = [(ValueType.Default, d) for d in self.default]
+                if len(self.domain) > 0:
+                    if not self.required:
+                        self.domain.append((ValueType.NULL, None))
+                    return [self]
             elif okValues is not None and len(okValues) > 0:
                 self.domain = self._getOkValue(opStr, okValues)
                 if len(self.domain) > 0:
@@ -361,6 +365,10 @@ class AbstractParam(metaclass=abc.ABCMeta):
                 if value is None:
                     return None
         return value
+
+    def __repr__(self):
+        return self.name
+
 
 class ObjectParam(AbstractParam):
     def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,

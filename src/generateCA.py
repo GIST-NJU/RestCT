@@ -203,7 +203,7 @@ class CA:
     def genEssentialParamsCase(self, operation, urlTuple, chain) -> List[Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]]:
         essentialParamList: List[AbstractParam] = list(filter(lambda p: p.isEssential, operation.parameterList))
         if len(essentialParamList) == 0:
-            return list(dict())
+            return [{}]
 
         reuseSeq = CA.reuseEssentialSeqDict.get(urlTuple, list())
         if len(reuseSeq):
@@ -219,7 +219,7 @@ class CA:
             try:
                 acts = ACTS(paramNames, domains, operation.constraints, self._eStrength)
             except Exception:
-                return list()
+                return [{}]
             else:
                 return acts.main()
 
@@ -250,10 +250,13 @@ class CA:
                 paramNames = newParamNames
                 domains = newDomains
 
+                if len(operation.constraints) > 0:
+                    return [{}]
+
             try:
                 acts = ACTS(paramNames, domains, operation.constraints, self._aStrength)
             except Exception:
-                return list()
+                return [{}]
             else:
                 actsOutput = acts.main()
                 for case in actsOutput:
