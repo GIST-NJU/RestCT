@@ -1,12 +1,62 @@
 # Artifact of "Combinatorial Testing of RESTful APIs"
 
-This artifact includes a testing tool, named **RestCT**, and 11 Swagger specifications created for evaluation. Specifically,
+## Overview
 
-- The RestCT tool implements the testing approach proposed in the paper "Combinatorial Testing of RESTful APIs". This tool takes a Swagger specification file as input, and then adopts combinatorial testing to generates concrete HTTP requests to test RESTful APIs described in the specification.
+This paper presents RestCT, a systematic and fully automatic approach that adopts Combinatorial Testing (CT) to test RESTful APIs. 
+RestCT is systematic in that it covers and tests not only the interactions of a certain number of operations in RESTful APIs, 
+but also the interactions of particular input-parameters in every single operation. 
+This is realised by a novel two-phase test case generation approach, 
+which first generates a constrained sequence covering array to determine the execution orders of available operations,
+and then applies an adaptive strategy to generate and refine several constrained covering arrays to concretise input-parameters of each operation. 
+RestCT is also automatic in that its application relies on only a given Swagger specification of RESTful APIs. 
+The creation of CT test models (especially, the inferring of dependency relationships in operation and input-parameter levels), 
+and the generation and execution of test cases are performed without any human intervention. 
 
-- The 11 Swagger specifications are created to test APIs of two real-world service systems, GitLab and Bing Maps. The experimantal results reported in the paper are obtained based on these specifications.
+## Important Files
+This artifact includes:
 
+- The `src` folder contains source codes that implements RestCT tool, the testing approach proposed in the paper "Combinatorial Testing of RESTful APIs". This tool takes a Swagger specification file as input, and then adopts combinatorial testing to generates concrete HTTP requests to test RESTful APIs described in the specification.
+- The `swagger` folder contains the 11 Swagger specifications are created to test APIs of two real-world service systems, GitLab and Bing Maps. The experimental results reported in the paper are obtained based on these specifications.
+- The `exp` folder contains the experiment scripts we used to obtain the experimental results reported in the paper
+- The `demo_server` folder contains a simple RESTful API system demo. Read the `demo_server/README.md` for more details
 
+## How To Use RESTCT
+### Set Up RESTCT
+
+- Python 3.8.2 and Java 1.8 for your appropriate OS
+- Switch to the repo root directory and install Python dependencies
+    ```bash
+    pip install -r requirements.txt
+    ```
+- Download trained models for [Spacy](https://spacy.io/models/)
+    ```bash
+    python -m spacy download en_core_web_sm
+    ```
+
+### Command
+Users can run the RestCT tool with the following command:
+```bash
+python restct.py [--swagger <abs path>][--SStrength <sstrength>][--EStrength <estrength>][--AStrength <astrength>]
+                 [--dir <abs output path>][--budget <seconds>][--patterns <file>]
+                 [--jar <acts>][--header <auth>][--columnId <exp id>]
+```
+#### Console Options
+- `--swagger` indicates the Swagger specification file of the APIs under test
+- `--SStrength`(int) is the strength of **operation sequence covering array**, default=2
+- `--EStrength`(int) is the strength of **essential input-parameters covering array**, default=3
+- `--AStrength`(int) is the strength of **all input-parameters covering array**, default=2
+- `--dir` indicates where the experimental data is stored
+- `--budget` specifies maximum amount of time(seconds) allowed for the testing, default=3600(1 hour)
+- `--patterns` provides the patterns used in testing to extract constraints from input-parameters' description
+- `--jar` provides the ACTS jar file used in generating input-parameter covering array
+- `--head` is needed if the APIs under test ask for authorization. The format is `"{\"key\":\"access_token\"}"`
+- `--columnId` is an id that will be part as a column of the statistics file. it is the same as swagger file name if not provided 
+
+For example, if demo_sever has been deployed successfully, we can test it using the following command:
+```bash
+python restct.py --swagger <parent directory>/RestCT/swagger/Demo/swagger.json --dir <parent directory>/RestCT/output --jar <parent directory>/RestCT/acts_2.93.jar
+```
+When the testing ends, you should see coverage information and other information in `RestCT/output/statistics.csv`.
 
 ## Obtain the Artifact
 
@@ -22,12 +72,6 @@ The directories of this artifcat are organised as follows:
 * 1
 * 2
 * 3
-
-
-
-## Replicate the Experiment
-
-In the experiment, RestCT is applied to test APIs of two service systems, GitLab (a local version is deployed as GitLab is an open source project) and Bing Maps (the remote service is used as the subject).
 
 
 
@@ -86,7 +130,7 @@ oauth = requests.post('http://localhost:30000/oauth/token', json=account, header
 oauth.json()
 ```
 Example response:
-```python
+```bash
 {
  "access_token": "de6780bc506a0446309bd9362820ba8aed28aa506c71eedbe1c5c4f9dd350e54",
  "token_type": "bearer",

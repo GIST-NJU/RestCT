@@ -1,108 +1,168 @@
-import time
+import argparse
+import json
+from argparse import Namespace
 from pathlib import Path
-from loguru import logger
-from src.parseJson import parse
-from src.generateSCA import SCA
-from src.generateCA import CA, SendRequest
-from src.Dto.parameter import Example
-from itertools import combinations
-from src.Dto.operation import Operation
-import pandas as pd
 
 
-class Report:
-    StillUncovered = 0
-    Uncovered = 0
-    Cost = 0
+class Config:
+    # swagger file path
+    swagger = ""
 
-    @staticmethod
-    def getSequenceInfo():
-        """Get The Number of Operation Sequences Exercised (Seq) and Their Average Length (Len)"""
-        return len(SCA.members), sum([len(m) for m in SCA.members]) / len(SCA.members)
+    # operation sequence covering strength
+    s_strength = 0
 
-    @staticmethod
-    def getSequenceTested():
-        """
-        Compute the proportion of 1-way and 2-way sequences that are actually tested
-        @:return: 1-way tested, 1-way all,  2-way tested, 2-way all, still uncovered SStrength-way due to timeout, all uncovered SStrength-way
-        """
-        return Report._computeCombinations(CA.successSet, 1), \
-               Report._computeCombinations(SCA.members, 1), \
-               Report._computeCombinations(CA.successSet, 2), \
-               Report._computeCombinations(SCA.members, 2), \
-               Report.Uncovered
+    # all parameter covering strength
+    a_strength = 0
 
-    @staticmethod
-    def getBugInfo():
-        return len(CA.bugList)
+    # essential parameter covering strength
+    e_strength = 0
 
-    @staticmethod
-    def getRestCallNumber():
-        return SendRequest.callNumber
+    # maximum of op_cover_strength
+    MAX_OP_COVER_STRENGTH = 5
 
-    @staticmethod
-    def getCost():
-        """
-        :return: in minutes
-        """
-        return Report.Cost / 60
+    # minimum of op_cover_strength
+    MIN_OP_COVER_STRENGTH = 1
 
-    @staticmethod
-    def _computeCombinations(seqSet, strength):
-        coveredSet = set()
-        for seq in seqSet:
-            if len(seq) < strength:
-                continue
-            for c in combinations(seq, strength):
-                coveredSet.add(tuple(c))
-        return len(coveredSet)
+    # maximum of param_cover_strength
+    MAX_PARAM_COVER_STRENGTH = 5
 
-    @staticmethod
-    def report(outputFolder):
-        seq, length = Report.getSequenceInfo()
-        c_1, c_1_a, c_2, c_2_a, a_c = Report.getSequenceTested()
-        bug = Report.getBugInfo()
-        total = Report.getRestCallNumber()
-        cost = Report.getCost()
+    # minimum of param_cover_strength
+    MIN_PARAM_COVER_STRENGTH = 1
 
-        file = Path(outputFolder) / "statistics.csv"
-        columns = ["Seq", "Len", "C_1_way", "C_2_way", "All C_SStrength_way", "Bug",
-                   "Total", "Cost"]
-        df = pd.DataFrame({
-            "Seq": [seq],
-            "Len": [length],
-            "C_1_way": [c_1 / c_1_a],
-            "C_2_way": [c_2 / c_2_a],
-            "All C_SStrength_way": [a_c],
-            "Bug": [bug],
-            "Total": [total],
-            "Cost": [cost]
-        })
-        df[columns].to_csv(file)
+    # output folder
+    output_folder = ""
 
-
-class RESTCT:
-    outputFolder = ""
+    # test budget (secs)
     budget = 0
 
-    @staticmethod
-    def run():
-        startTime = time.time()
-        loggerPath = Path(RESTCT.outputFolder) / "log/log_{time}.log"
-        logger.add(loggerPath.as_posix(), rotation="100 MB", format="{message}")
-        parse()
-        logger.info("operations: {}".format(len(Operation.members)))
-        logger.info("examples found: {}".format(len(Example.members)))
-        sca = SCA()
-        Report.Uncovered = len(sca.uncoveredSet)
-        while len(sca.uncoveredSet) > 0:
-            sequence = sca.buildSequence()
-            logger.info("uncovered combinations: {}, sequence length: {}".format(len(sca.uncoveredSet), len(sequence)))
+    # constraint patterns for nlp recognition
+    patterns = ""
 
-        for sequence in sorted(SCA.members, key=lambda item: len(item)):
-            ca = CA(sequence)
-            flag = ca.main(logger, RESTCT.budget - (time.time() - startTime))
-            if not flag:
-                break
-        Report.Cost = time.time() - startTime
-        Report.report(RESTCT.outputFolder)
+    # acts jar file
+    jar = ""
+
+    # auth token
+    authToken = dict()
+
+    # experiment unique name
+    columnId = ""
+
+    # data and log path
+    dataPath = ""
+
+
+def checkAndPrehandling(settings: Namespace):
+    if Path(settings.swagger).exists():
+        Config.swagger = settings.swagger
+    else:
+        raise Exception("swagger json does not exist")
+
+    if Config.MIN_OP_COVER_STRENGTH <= settings.SStrength <= Config.MAX_OP_COVER_STRENGTH:
+        Config.s_strength = settings.SStrength
+    else:
+        raise Exception("operation sequence covering strength must be in [{}, {}]".format(Config.MIN_OP_COVER_STRENGTH,
+                                                                                          Config.MAX_OP_COVER_STRENGTH))
+
+    if Config.MIN_PARAM_COVER_STRENGTH <= settings.EStrength <= Config.MAX_PARAM_COVER_STRENGTH:
+        Config.e_strength = settings.EStrength
+    else:
+        raise Exception(
+            "essential parameter covering strength must be in [{}, {}]".format(Config.MIN_PARAM_COVER_STRENGTH,
+                                                                               Config.MAX_PARAM_COVER_STRENGTH))
+
+    if Config.MIN_PARAM_COVER_STRENGTH <= settings.AStrength <= Config.MAX_PARAM_COVER_STRENGTH:
+        Config.a_strength = settings.AStrength
+    else:
+        raise Exception(
+            "all parameter covering strength must be in [{}, {}]".format(Config.MIN_PARAM_COVER_STRENGTH,
+                                                                         Config.MAX_PARAM_COVER_STRENGTH))
+
+    folder = Path(settings.dir)
+    if folder.exists():
+        # raise Exception(settings.dir + "already exists")
+        pass
+    else:
+        Config.output_folder = settings.dir
+        folder.mkdir(exist_ok=False)
+
+    if settings.budget == 0:
+        raise Exception("test budget cannot be zero")
+    else:
+        Config.budget = settings.budget
+
+    patterns = Path(settings.patterns)
+    if patterns.exists():
+        Config.patterns = settings.patterns
+    else:
+        raise Exception("patterns are not provided")
+
+    jarFile = Path(settings.jar)
+    if jarFile.exists():
+        Config.jar = settings.jar
+    else:
+        raise Exception("acts jar is not provided")
+
+    try:
+        authToken = json.loads(settings.header)
+    except json.JSONDecodeError:
+        raise Exception("expecting strings enclosed in double quotes")
+    else:
+        Config.authToken.update(authToken)
+
+    if settings.columnId is None or settings.columnId == "":
+        Config.columnId = Path(settings.swagger).with_suffix("").name
+    else:
+        Config.columnId = settings.columnId
+
+    Config.dataPath = folder / Config.columnId
+
+
+if __name__ == "__main__":
+    from src.restct import RESTCT
+    from src.config import Config
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--swagger',
+                        help='abs path of swagger file',
+                        type=str, required=True)
+    parser.add_argument('--SStrength',
+                        help='operation sequence covering strength',
+                        type=int, required=False, default=2)
+    parser.add_argument('--EStrength',
+                        help='essential parameter covering strength',
+                        type=int, required=False, default=3)
+    parser.add_argument('--AStrength',
+                        help='all parameter covering strength',
+                        type=int, required=False, default=2)
+    parser.add_argument('--dir',
+                        help='output folder',
+                        type=str, required=True)
+    parser.add_argument('--budget',
+                        help='test budget(Secs), default=3600',
+                        type=int, required=False, default=3600)
+    parser.add_argument('--patterns',
+                        help='constraint patterns for nlp processes',
+                        type=str, required=True)
+    parser.add_argument('--jar',
+                        help='acts jar file',
+                        type=str, required=True)
+    parser.add_argument('--header',
+                        help='auth token: {keyName: token}',
+                        type=str, required=False, default="{}")
+    parser.add_argument('--columnId',
+                        help='experiment unique name for statistic data',
+                        type=str, required=False, default="")
+
+    args = parser.parse_args()
+
+    checkAndPrehandling(args)
+
+    RESTCT.outputFolder = Config.output_folder
+    RESTCT.dataPath = Config.dataPath
+    RESTCT.budget = Config.budget
+    RESTCT.columnId = Config.columnId
+    RESTCT.SStrength = Config.s_strength
+    RESTCT.EStrength = Config.e_strength
+    RESTCT.AStrength = Config.a_strength
+    RESTCT.run()
