@@ -36,7 +36,7 @@ This artifact includes:
 ### Command
 Users can run the RestCT tool with the following command:
 ```bash
-python restct.py  RESTCT [-h] --swagger SWAGGER --dir DIR [--SStrength SSTRENGTH] [--EStrength ESTRENGTH] [--AStrength ASTRENGTH] [--budget BUDGET] [--patterns PATTERNS] [--jar JAR] [--header HEADER] [--columnId COLUMNID]
+python restct.py [-h] --swagger SWAGGER --dir DIR [--SStrength SSTRENGTH] [--EStrength ESTRENGTH] [--AStrength ASTRENGTH] [--budget BUDGET] [--patterns PATTERNS] [--jar JAR] [--header HEADER] [--columnId COLUMNID]
 ```
 #### Console Options
 - `--swagger` indicates the Swagger specification file of the APIs under test
@@ -52,7 +52,7 @@ python restct.py  RESTCT [-h] --swagger SWAGGER --dir DIR [--SStrength SSTRENGTH
 
 For example, if demo_sever has been deployed successfully, we can test it using the following command:
 ```bash
-python restct.py --swagger <parent directory>/RestCT/swagger/Demo/swagger.json --dir <parent directory>/RestCT/output --jar <parent directory>/RestCT/acts_2.93.jar
+python restct.py --swagger <parent directory>/RestCT/swagger/Demo/swagger.json --dir <parent directory>/RestCT/output 
 ```
 When the testing ends, you should see coverage information and other information in `RestCT/output/statistics.csv`.
 

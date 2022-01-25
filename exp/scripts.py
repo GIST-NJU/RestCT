@@ -58,6 +58,13 @@ class SUT:
         return cls(SStrength, EStrength, AStrength, budget, sFile.as_posix(), repeat)
 
     def generateScript(self):
+        scriptFile = Path(SCRIPTS_DIR) / "{0}_{1}_{2}_{3}.sh".format(self.name, self.SStrength, self.EStrength, self.AStrength)
+        mainFile = scriptFile.parent.parent / "src/restct.py"
+        command = mainFile.as_posix()
+        command += " --swagger"
+        with scriptFile.open("w") as fp:
+            fp.write("#!/bin/bash \n\n")
+
 
 
 
