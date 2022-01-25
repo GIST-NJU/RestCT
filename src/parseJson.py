@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from src.Dto.keywords import DocKey, ParamKey, DataType
+from src.Dto.keywords import DocKey, ParamKey, DataType, Method
 from src.Dto.operation import Operation
 from src.Dto.parameter import buildParam, Example
 from src.Dto.operation import Response
@@ -18,7 +18,7 @@ def parse():
         2.2 get responses dto
         2.3 get examples dto
     """
-    from src.config import Config
+    from src.restct import Config
     swagger = Path(Config.swagger)
     with swagger.open("r") as fp:
         spec = json.load(fp)
@@ -60,10 +60,15 @@ def _parse_paths(paths: dict):
     :return: operation list
     """
     for url_str, url_info in paths.items():
+        extraParamList = url_info.get(DocKey.PARAMS, list())
         for method_name, method_info in url_info.items():
+            if method_name not in [m.value for m in Method]:
+                continue
             operation = Operation(URL_PREFIX.rstrip("/") + "/" + url_str.lstrip("/"), method_name)
             # process parameters
-            for param_info in method_info.get(DocKey.PARAMS, []):
+            paramList = method_info.get(DocKey.PARAMS, [])
+            paramList.extend(extraParamList)
+            for param_info in paramList:
                 operation.addParam(buildParam(param_info, DEFINITIONS))
                 if DocKey.EXAMPLE in param_info.keys():
                     example = Example(param_info.get(ParamKey.NAME), param_info.get(DocKey.EXAMPLE))

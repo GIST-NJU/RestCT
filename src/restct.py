@@ -42,7 +42,10 @@ class Config:
     jar = ""
 
     # auth token
-    authToken = dict()
+    header = dict()
+
+    # auth token
+    query = dict()
 
     # experiment unique name
     columnId = ""
@@ -52,6 +55,8 @@ class Config:
 
 
 def checkAndPrehandling(settings: Namespace):
+    curFile = Path(__file__)
+
     if Path(settings.swagger).exists():
         Config.swagger = settings.swagger
     else:
@@ -78,27 +83,30 @@ def checkAndPrehandling(settings: Namespace):
                                                                          Config.MAX_PARAM_COVER_STRENGTH))
 
     folder = Path(settings.dir)
-    if folder.exists():
-        # raise Exception(settings.dir + "already exists")
-        pass
-    else:
-        Config.output_folder = settings.dir
-        folder.mkdir(exist_ok=False)
+
+    Config.output_folder = settings.dir
+    folder.mkdir(exist_ok=True)
 
     if settings.budget == 0:
         raise Exception("test budget cannot be zero")
     else:
         Config.budget = settings.budget
 
-    patterns = Path(settings.patterns)
-    if patterns.exists():
-        Config.patterns = settings.patterns
+    if settings.patterns == "":
+        patterns = curFile.parent.parent / "matchrules.json"
+    else:
+        patterns = Path(settings.patterns)
+    if patterns.exists() and patterns.is_file():
+        Config.patterns = patterns.as_posix()
     else:
         raise Exception("patterns are not provided")
 
-    jarFile = Path(settings.jar)
-    if jarFile.exists():
-        Config.jar = settings.jar
+    if settings.jar == "":
+        jarFile = curFile.parent.parent / "acts_2.93.jar"
+    else:
+        jarFile = Path(settings.jar)
+    if jarFile.exists() and jarFile.is_file():
+        Config.jar = jarFile.as_posix()
     else:
         raise Exception("acts jar is not provided")
 
@@ -107,19 +115,29 @@ def checkAndPrehandling(settings: Namespace):
     except json.JSONDecodeError:
         raise Exception("expecting strings enclosed in double quotes")
     else:
-        Config.authToken.update(authToken)
+        Config.header.update(authToken)
+
+    try:
+        authToken = json.loads(settings.query)
+    except json.JSONDecodeError:
+        raise Exception("expecting strings enclosed in double quotes")
+    else:
+        Config.query.update(authToken)
 
     if settings.columnId is None or settings.columnId == "":
         Config.columnId = Path(settings.swagger).with_suffix("").name
     else:
         Config.columnId = settings.columnId
 
-    Config.dataPath = folder / Config.columnId
+    dataPath = folder / Config.columnId
+    Config.dataPath = dataPath.as_posix()
+    if not dataPath.exists():
+        dataPath.mkdir()
 
 
 if __name__ == "__main__":
-    from src.restct import RESTCT
-    from src.config import Config
+    from src.algorithm import RESTCT
+    from src.restct import Config
 
     parser = argparse.ArgumentParser()
 
@@ -143,11 +161,14 @@ if __name__ == "__main__":
                         type=int, required=False, default=3600)
     parser.add_argument('--patterns',
                         help='constraint patterns for nlp processes',
-                        type=str, required=True)
+                        type=str, required=False, default="")
     parser.add_argument('--jar',
                         help='acts jar file',
-                        type=str, required=True)
+                        type=str, required=False, default="")
     parser.add_argument('--header',
+                        help='auth token: {keyName: token}',
+                        type=str, required=False, default="{}")
+    parser.add_argument('--query',
                         help='auth token: {keyName: token}',
                         type=str, required=False, default="{}")
     parser.add_argument('--columnId',

@@ -133,7 +133,7 @@ class SCA:
     members: List[Tuple[Operation]] = list()
 
     def __init__(self):
-        from src.config import Config
+        from src.restct import Config
         self._strength = min(Config.s_strength, len(Operation.members))
         self.uncoveredSet = self._collectUncoveredSet()
 

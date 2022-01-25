@@ -27,7 +27,7 @@ class ConstraintMatcher:
         self.spanWithConstraints = set()
 
     def _loadPatterns(self):
-        from src.config import Config
+        from src.restct import Config
         patternFile = Path(Config.patterns)
         with patternFile.open("r") as fp:
             patterns = json.load(fp)

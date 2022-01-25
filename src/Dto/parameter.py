@@ -28,6 +28,8 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
             extraInfo = AbstractParam.getRef(info.get(ParamKey.SCHEMA, None).get(DocKey.REF_SIGN, None), definitions)
         elif DocKey.REF_SIGN in info.keys():
             extraInfo = AbstractParam.getRef(info.get(DocKey.REF_SIGN, None), definitions)
+        elif DocKey.ALL_OF in info.keys() or DocKey.ANY_OF in info.keys() or DocKey.ONE_OF in info.keys() or DocKey.ADDITIONAL_PROPERTIES in info.keys():
+            return None
         else:
             raise UnsupportedError(info)
         extraInfo.update(info)
@@ -61,12 +63,15 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
             return DateTime(**buildInfo)
         elif buildInfo["paramFormat"] is DataType.File:
             return FileParam(**buildInfo)
+        elif buildInfo["paramFormat"] is DataType.UUID:
+            return UuidParam(**buildInfo)
         else:
             raise UnsupportedError(info.__str__() + " is not taken into consideration")
     elif buildInfo["paramType"] is DataType.File:
         return FileParam(**buildInfo)
     elif buildInfo["paramType"] is DataType.Object:
         buildInfo["allInfo"] = info
+        buildInfo["required"] = info.get("required", [])
         return ObjectParam.buildObject(buildInfo, definitions)
     else:
         raise UnsupportedError(info.__str__() + " is not taken into consideration")
@@ -230,7 +235,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
             else:
                 pass
 
-            exampleValues = Example.findExample(self.name)
+            exampleValues = Example.findExample(self.name)[:2]
             if len(exampleValues) == 1:
                 self.domain = [(ValueType.Random, Fuzzer.mutate(exampleValues[0])[0]),
                                (ValueType.Default, exampleValues[0])]
@@ -393,6 +398,10 @@ class ObjectParam(AbstractParam):
 
         children = [buildParam(pInfo, definitions, pName) for pName, pInfo in childrenInfo.get(DocKey.PROPERTIES).items()]
         info["children"] = children
+        if isinstance(info.get("required"), list):
+            for child in children:
+                if child.name in info.get("required"):
+                    child.required = True
         return cls(**info)
 
     def seeAllParameters(self) -> List[AbstractParam]:
@@ -443,8 +452,8 @@ class ArrayParam(AbstractParam):
         if len(itemInfo) == 0:
             raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
         elif ParamKey.TYPE in itemInfo.keys():
-            itemParam = buildParam(itemInfo, definitions, info.pop("specifiedName"))
-            info["specifiedName"] = ""
+            itemParam = buildParam(itemInfo, definitions, info.get("specifiedName"))
+            # info["specifiedName"] = ""
             info["itemParam"] = itemParam
             return cls(**info)
         elif DocKey.REF_SIGN in itemInfo.keys():
@@ -452,8 +461,8 @@ class ArrayParam(AbstractParam):
             itemInfoCopied = dict()
             itemInfoCopied.update(itemInfo)
             itemInfoCopied.update(AbstractParam.getRef(ref_info, definitions))
-            itemParam = buildParam(itemInfoCopied, definitions, info.pop("specifiedName"))
-            info["specifiedName"] = ""
+            itemParam = buildParam(itemInfoCopied, definitions, info.get("specifiedName"))
+            # info["specifiedName"] = ""
             info["itemParam"] = itemParam
             return cls(**info)
         else:
@@ -523,11 +532,11 @@ class FileParam(AbstractParam):
         return cls(name, **info)
 
     def genRandom(self):
-        return [
+        return [random.choice([
             "",
             "random",
             "long random long random"
-        ]
+        ])]
 
     def printableValue(self, response):
         value = super(FileParam, self).printableValue(response)
@@ -599,7 +608,7 @@ class Date(AbstractParam):
         return Date.getMutate(curTime)
 
     @staticmethod
-    def getMutate(timeDto):
+    def getMutate(timeDto=None):
         timeFormat = "%Y-%m-%d"
         timeDto = datetime.utcnow() if timeDto is None else timeDto
         randomValues = list()
@@ -618,8 +627,20 @@ class Date(AbstractParam):
         else:
             valueType, _ = self.value
             if valueType is ValueType.Random:
-                value = Date.getMutate(datetime.strptime(value, '%Y-%m-%d'))[0]
+                try:
+                    value = Date.getMutate(datetime.strptime(value, '%Y-%m-%d'))[0]
+                except ValueError:
+                    value = Date.getMutate()[0]
             return value
+
+
+class UuidParam(AbstractParam):
+    def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,
+                 paramFormat: DataType, description: str):
+        super().__init__(specifiedName, default, loc, required, paramType, paramFormat, description)
+
+    def genRandom(self) -> list:
+        pass
 
 
 class DateTime(AbstractParam):
@@ -648,10 +669,10 @@ class DateTime(AbstractParam):
         if len(self.value) == 0:
             return None
         else:
-            valueType, _ = self.value
-            if valueType is ValueType.Random:
-                try:
-                    value = DateTime.getMutate(datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ'))
-                except ValueError:
-                    pass
+            # valueType, _ = self.value
+            # if valueType is ValueType.Random:
+            #     try:
+            #         value = DateTime.getMutate(datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ'))
+            #     except ValueError:
+            #         value = DateTime.getMutate(datetime.utcnow())[0]
             return value

@@ -7,7 +7,7 @@ from src.generateCA import CA, SendRequest
 from src.Dto.parameter import Example
 from itertools import combinations
 from src.Dto.operation import Operation
-import pandas as pd
+import sys
 
 
 class Report:
@@ -73,9 +73,10 @@ class Report:
                 fp.write(",".join(columns))
                 fp.write("\n")
 
-        data = "{},{},{},{},{},{:.2},{:.2},{:.2},{},{},{},{:.2}\n".format(RESTCT.columnId, RESTCT.SStrength, RESTCT.EStrength, RESTCT.AStrength, seq, length, c_1 / c_1_a, c_2 / c_2_a, a_c, bug, total, cost)
+        data = "{},{},{},{},{},{:.2f},{:.2f},{:.2f},{},{},{},{:.2f}\n".format(RESTCT.columnId, RESTCT.SStrength, RESTCT.EStrength, RESTCT.AStrength, seq, length, c_1 / c_1_a, c_2 / c_2_a, a_c, bug, total, cost)
         with file.open("a") as fp:
             fp.write(data)
+            logger.info("{},{},{},{},{},{:.2f},{:.2f},{:.2f},{},{},{},{:.2f}\n".format(RESTCT.columnId, RESTCT.SStrength, RESTCT.EStrength, RESTCT.AStrength, seq, length, c_1 / c_1_a, c_2 / c_2_a, a_c, bug, total, cost))
 
 
 class RESTCT:
@@ -91,7 +92,11 @@ class RESTCT:
     def run():
         startTime = time.time()
         loggerPath = Path(RESTCT.dataPath) / "log/log_{time}.log"
-        logger.add(loggerPath.as_posix(), rotation="100 MB", format="{message}")
+        logger.remove(0)
+        logger.add(loggerPath.as_posix(), rotation="100 MB",
+                   format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - <level>{message}</level>")
+        logger.add(sys.stderr,
+                   format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - <level>{message}</level>")
         parse()
         logger.info("operations: {}".format(len(Operation.members)))
         logger.info("examples found: {}".format(len(Example.members)))
@@ -102,12 +107,12 @@ class RESTCT:
             logger.info("uncovered combinations: {}, sequence length: {}".format(len(sca.uncoveredSet), len(sequence)))
 
         # seqList = sorted(SCA.members, key=lambda item: len(item))
-        sortedMembers = Path("/Users/lixin/Desktop/projectMembers.txt")
-        # sortedOpertsions = Path("/Users/lixin/Desktop/projectOperations.txt")
+        sortedMembers = Path("/root/py_relicating/commitMembers.txt")
+        # sortedOperations = Path("/root/py_relicating/commitOperations.txt")
         import pickle
         # with sortedMembers.open("wb") as fp:
         #     pickle.dump(seqList, fp)
-        # with sortedOpertsions.open("wb") as fp:
+        # with sortedOperations.open("wb") as fp:
         #     pickle.dump([[op.method.value + "*" + op.url for op in seq] for seq in seqList], fp)
 
         # with sortedMembers.open("rb") as fp:
@@ -116,7 +121,7 @@ class RESTCT:
         for sequence in sorted(SCA.members, key=lambda item: len(item)):
         # for sequence in seqList:
             ca = CA(sequence)
-            flag = ca.main(logger, RESTCT.budget - (time.time() - startTime))
+            flag = ca.main(RESTCT.budget - (time.time() - startTime))
             if not flag:
                 break
         Report.Cost = time.time() - startTime

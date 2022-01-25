@@ -4,6 +4,10 @@ from enum import Enum
 class DocKey:
     # 文档
     REF_SIGN = "$ref"
+    ALL_OF = "allOf"
+    ONE_OF = "oneOf"
+    ANY_OF = "anyOf"
+    ADDITIONAL_PROPERTIES = "additionalProperties"
 
     SCHEMES = "schemes"
     BASEPATH = "basePath"
@@ -63,6 +67,7 @@ class DataType(Enum):
     Bool = "boolean"
     # 文件
     File = "file"
+    UUID = "uuid"
     # 复杂类型
     Array = "array"
     Object = "object"

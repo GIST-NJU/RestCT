@@ -135,3 +135,4 @@ git
 .idea/
 .vscode/
 *.spec
+output/

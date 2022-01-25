@@ -1,0 +1,1834 @@
+{
+    "swagger": "2.0",
+    "schemes": [
+        "http"
+    ],
+    "host": "dev.virtualearth.net",
+    "basePath": "/REST/v1",
+    "paths": {
+        "/Routes": {
+            "get": {
+                "description": "Find a driving route.",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "waypoint.1",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies two or more locations that define the route and that are in sequential order.",
+                        "example": "Seattle"
+                    },
+                    {
+                        "name": "waypoint.3",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies two or more locations that define the route and that are in sequential order.",
+                        "example": "Redmond"
+                    },
+                    {
+                        "name": "viaWaypoint.2",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies one or more locations that define intermediate points of a route between waypoints.",
+                        "example": "Kirkland"
+                    },
+                    {
+                        "name": "avoid",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the road types to minimize or avoid when a route is created for the driving travel mode. if travelMode is not Driving, avoid is not required",
+                        "enum": [
+                            "highways",
+                            "tolls",
+                            "ferry",
+                            "minimizeHighways",
+                            "minimizeTolls",
+                            "borderCrossing"
+                        ]
+                    },
+                    {
+                        "name": "distanceBeforeFirstTurn",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies the distance before the first turn is allowed in the route. if travelMode is Driving, distanceBeforeFirstTurn is required",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "heading",
+                        "required": false,
+                        "in": "query",
+                        "description": " Desired camera heading in degrees, clockwise from north.",
+                        "type": "integer",
+                        "maximum": 359,
+                        "minimum": 0
+                    },
+                    {
+                        "name": "optimize",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies what parameters to use to optimize the route on the map.",
+                        "type": "string",
+                        "enum": [
+                            "distance",
+                            "time", 
+                            "timeWithTraffic",
+                            "timeAvoidClosure"
+                        ]
+                    },
+                    {
+                        "name": "optimizeWaypoints",
+                        "required": false,
+                        "in": "query",
+                        "description": "Instructs the API to rearrange the route waypoints and reduce the route cost specified with the optimize parameter. ",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "routeAttributes",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specify to include or exclude parts of the routes response.",
+                        "type": "string",
+                        "enum": [
+                            "excludeItinerary",
+                            "routePath",
+                            "transitStops",
+                            "routeSummariesOnly",
+                            "regionTravelSummary",
+                            "all"
+                        ]
+                    },
+                    {
+                        "name": "routePathOutput",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies whether the response should include information about Point (latitude and longitude) values for the route’s path.",
+                        "type": "string",
+                        "enum": [
+                            "Points",
+                            "None"
+                        ]
+                    },
+                    {
+                        "name": "tolerances",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies a series of tolerance values. Each value produces a subset of points that approximates the route that is described by the full set of points. if routePathOutput is Points, tolerances is required.",
+                        "type": "double",
+                        "example": 0.00000344978
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units to use for distance in the response.",
+                        "enum": [
+                            "Kilometer",
+                            "km",
+                            "Mile",
+                            "mi"
+                        ],
+                        "default": "km"
+                    },
+                    {
+                        "name": "dateTime",
+                        "required": false,
+                        "in": "query",
+                        "description": "The timeType parameter identifies the desired transit time, such as arrival time or departure time. if travelMode is Transit, dateTime is required",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "03/01/2011 05:42:00"
+                    },
+                    {
+                        "name": "timeType",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies how to interpret the date and transit time value that is specified by the dateTime parameter. if travelMode is Transit, timeType is required",
+                        "type": "string",
+                        "enum": [
+                            "Arrival",
+                            "Departure",
+                            "LastAvailable"
+                        ]
+                    },
+                    {
+                        "name": "maxSolutions",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies the maximum number of transit routes to return. if travelMode is Transit or Driving, maxSolutions is required",
+                        "type": "integer",
+                        "default": 1,
+                        "maximum": 3,
+                        "minimum": 1
+                    },
+                    {
+                        "name": "itineraryGroups",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies whether the response include information about itinerary groups (continuous itinerary items in same mode are usually grouped together).",
+                        "type": "boolean"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Routes/{travelMode}": {
+            "get": {
+                "description": "Find a walking, driving or transit route by specifying the mode of travel.",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "waypoint.1",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies two or more locations that define the route and that are in sequential order.",
+                        "example": "Seattle"
+                    },
+                    {
+                        "name": "waypoint.3",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies two or more locations that define the route and that are in sequential order.",
+                        "example": "Redmond"
+                    },
+                    {
+                        "name": "viaWaypoint.2",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies one or more locations that define intermediate points of a route between waypoints.",
+                        "example": "Kirkland"
+                    },
+                    {
+                        "name": "avoid",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the road types to minimize or avoid when a route is created for the driving travel mode. if travelMode is not Driving, avoid is not required",
+                        "enum": [
+                            "highways",
+                            "tolls",
+                            "ferry",
+                            "minimizeHighways",
+                            "minimizeTolls",
+                            "borderCrossing"
+                        ]
+                    },
+                    {
+                        "name": "distanceBeforeFirstTurn",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies the distance before the first turn is allowed in the route. if travelMode is Driving, distanceBeforeFirstTurn is required",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "heading",
+                        "required": false,
+                        "in": "query",
+                        "description": " Desired camera heading in degrees, clockwise from north.",
+                        "type": "integer",
+                        "maximum": 359,
+                        "minimum": 0
+                    },
+                    {
+                        "name": "optimize",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies what parameters to use to optimize the route on the map.",
+                        "type": "string",
+                        "enum": [
+                            "distance",
+                            "time", 
+                            "timeWithTraffic",
+                            "timeAvoidClosure"
+                        ]
+                    },
+                    {
+                        "name": "optimizeWaypoints",
+                        "required": false,
+                        "in": "query",
+                        "description": "Instructs the API to rearrange the route waypoints and reduce the route cost specified with the optimize parameter. ",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "routeAttributes",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specify to include or exclude parts of the routes response.",
+                        "type": "string",
+                        "enum": [
+                            "excludeItinerary",
+                            "routePath",
+                            "transitStops",
+                            "routeSummariesOnly",
+                            "regionTravelSummary",
+                            "all"
+                        ]
+                    },
+                    {
+                        "name": "routePathOutput",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies whether the response should include information about Point (latitude and longitude) values for the route’s path.",
+                        "type": "string",
+                        "enum": [
+                            "Points",
+                            "None"
+                        ]
+                    },
+                    {
+                        "name": "tolerances",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies a series of tolerance values. Each value produces a subset of points that approximates the route that is described by the full set of points. if routePathOutput is Points, tolerances is required.",
+                        "type": "double",
+                        "example": 0.00000344978
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units to use for distance in the response.",
+                        "enum": [
+                            "Kilometer",
+                            "km",
+                            "Mile",
+                            "mi"
+                        ],
+                        "default": "km"
+                    },
+                    {
+                        "name": "dateTime",
+                        "required": false,
+                        "in": "query",
+                        "description": "The timeType parameter identifies the desired transit time, such as arrival time or departure time. if travelMode is Transit, dateTime is required",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "03/01/2011 05:42:00"
+                    },
+                    {
+                        "name": "timeType",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies how to interpret the date and transit time value that is specified by the dateTime parameter. if travelMode is Transit, timeType is required",
+                        "type": "string",
+                        "enum": [
+                            "Arrival",
+                            "Departure",
+                            "LastAvailable"
+                        ]
+                    },
+                    {
+                        "name": "maxSolutions",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies the maximum number of transit routes to return. if travelMode is Transit or Driving, maxSolutions is required",
+                        "type": "integer",
+                        "default": 1,
+                        "maximum": 3,
+                        "minimum": 1
+                    },
+                    {
+                        "name": "travelMode",
+                        "required": false,
+                        "in": "path",
+                        "description": "The mode of travel for the route.",
+                        "type": "string",
+                        "enum": [
+                            "Driving", "Walking", "Transit"
+                        ]
+                    },
+                    {
+                        "name": "itineraryGroups",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies whether the response include information about itinerary groups (continuous itinerary items in same mode are usually grouped together).",
+                        "type": "boolean"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Routes/Truck": {
+            "get": {
+                "description": "Synchronous Truck Routing Request URL ",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "waypoint.1",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies two or more locations that define the route and that are in sequential order.",
+                        "example": "Seattle"
+                    },
+                    {
+                        "name": "waypoint.3",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies two or more locations that define the route and that are in sequential order.",
+                        "example": "Redmond"
+                    },
+                    {
+                        "name": "viaWaypoint.2",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies one or more locations that define intermediate points of a route between waypoints.",
+                        "example": "Kirkland"
+                    },
+                    {
+                        "name": "avoid",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the road types to minimize or avoid when a route is created for the driving travel mode. if travelMode is not Driving, avoid is not required",
+                        "enum": [
+                            "highways",
+                            "tolls",
+                            "ferry",
+                            "minimizeHighways",
+                            "minimizeTolls",
+                            "borderCrossing",
+                            "minimizeDrivingSideTurn",
+                            "minimizeAgainstDrivingSideTurn",
+                            "minimizeUTurn"
+                        ]
+                    },
+                    {
+                        "name": "distanceBeforeFirstTurn",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies the distance before the first turn is allowed in the route. if travelMode is Driving, distanceBeforeFirstTurn is required",
+                        "type": "integer"
+                    },
+                    {
+                        "name": "heading",
+                        "required": false,
+                        "in": "query",
+                        "description": " Desired camera heading in degrees, clockwise from north.",
+                        "type": "integer",
+                        "maximum": 359,
+                        "minimum": 0
+                    },
+                    {
+                        "name": "optimize",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies what parameters to use to optimize the route on the map.",
+                        "type": "string",
+                        "enum": [
+                            "time", 
+                            "timeWithTraffic"
+                        ]
+                    },
+                    {
+                        "name": "optimizeWaypoints",
+                        "required": false,
+                        "in": "query",
+                        "description": "Instructs the API to rearrange the route waypoints and reduce the route cost specified with the optimize parameter. ",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "routeAttributes",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specify to include or exclude parts of the routes response.",
+                        "type": "string",
+                        "enum": [
+                            "routePath",
+                            "regionTravelSummary"
+                        ]
+                    },
+                    {
+                        "name": "tolerances",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies a series of tolerance values. Each value produces a subset of points that approximates the route that is described by the full set of points. if routePathOutput is Points, tolerances is required.",
+                        "type": "string",
+                        "example": "0.00000344,0.0005978"
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units to use for distance in the response.",
+                        "enum": [
+                            "kilometer",
+                            "km",
+                            "mile",
+                            "mi"
+                        ],
+                        "default": "km"
+                    },
+                    {
+                        "name": "dateTime",
+                        "required": false,
+                        "in": "query",
+                        "description": "The timeType parameter identifies the desired transit time, such as arrival time or departure time. if travelMode is Transit, dateTime is required",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "03/01/2011 05:42:00"
+                    },
+                    {
+                        "name": "dimensionUnit",
+                        "required": false,
+                        "in": "query",
+                        "description": "The unit of measurement of width, height, length. Can be one of the following values",
+                        "type": "string",
+                        "enum": [
+                            "meter",
+                            "m",
+                            "foot",
+                            "ft"
+                        ]
+                    },
+                    {
+                        "name": "weightUnit",
+                        "required": false,
+                        "in": "query",
+                        "description": "The unit of measurement of weight",
+                        "type": "string",
+                        "enum": [
+                            "kilogram ",
+                            "kg",
+                            "pound ",
+                            "lb"
+                        ]
+                    },
+                    {
+                        "name": "vehicleHeight",
+                        "required": false,
+                        "in": "query",
+                        "description": " The height of the vehicle in the specified dimension units",
+                        "type": "double",
+                        "example": 5
+                    },
+                    {
+                        "name": "vehicleWidth",
+                        "required": false,
+                        "in": "query",
+                        "description": "The width of the vehicle in the specified dimension units.",
+                        "type": "double",
+                        "example": 3.5
+                    },
+                    {
+                        "name": "vehicleLength",
+                        "required": false,
+                        "in": "query",
+                        "description": "The length of the vehicle in the specified dimension units.",
+                        "type": "double",
+                        "example": 30
+                    },
+                    {
+                        "name": "vehicleWeight",
+                        "required": false,
+                        "in": "query",
+                        "description": " The weight of the vehicle in the specified weight units.",
+                        "type": "double",
+                        "example": 30000
+                    },
+                    {
+                        "name": "vehicleAxles",
+                        "required": false,
+                        "in": "query",
+                        "description": "The number of axles.",
+                        "type": "integer",
+                        "example": 3
+                    },
+                    {
+                        "name": "vehicleTrailers",
+                        "required": false,
+                        "in": "query",
+                        "description": "The number of trailers.",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    {
+                        "name": "vehicleSemi",
+                        "required": false,
+                        "in": "query",
+                        "description": " Indicates if the truck is pulling a semi-trailer. Semi-trailer restrictions are mostly used in North America.",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "vehicleMaxGradient",
+                        "required": false,
+                        "in": "query",
+                        "description": "The maximum gradient the vehicle can drive measured in degrees.",
+                        "type": "double",
+                        "example": 10
+                    },
+                    {
+                        "name": "vehicleMinTurnRadius",
+                        "required": false,
+                        "in": "query",
+                        "description": " The minimum required radius for the vehicle to turn in the specified dimension units.",
+                        "type": "double",
+                        "example": 15
+                    },
+                    {
+                        "name": "vehicleAvoidCrossWind",
+                        "required": false,
+                        "in": "query",
+                        "description": "Indicates if the vehicle shall avoid crosswinds.",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "vehicleAvoidGroundingRisk",
+                        "required": false,
+                        "in": "query",
+                        "description": "Indicates if the route shall avoid the risk of grounding.",
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "vehicleHazardousMaterials",
+                        "required": false,
+                        "in": "query",
+                        "description": "A comma separated and case-sensitive list of one or more hazardous materials for which the vehicle is transporting. ",
+                        "type": "string",
+                        "enum": [
+                            "Combustable",
+                            "C",
+                            "Corrosive",
+                            "Cr",
+                            "Explosive",
+                            "E",
+                            "Flammable",
+                            "F",
+                            "FlammableSolid",
+                            "FS",
+                            "Gas",
+                            "G",
+                            "GoodsHarmfulToWater",
+                            "WH",
+                            "Organic",
+                            "O",
+                            "Other",
+                            "Poison",
+                            "P",
+                            "PoisonousInhalation",
+                            "PI",
+                            "Radioactive",
+                            "R",
+                            "None"
+                        ]
+                    },
+                    {
+                        "name": "vehicleHazardousPermits",
+                        "required": false,
+                        "in": "query",
+                        "description": "A comma separated and case-sensitive list of one or more hazardous materials for which the vehicle has a permit.",
+                        "type": "string",
+                        "enum": [
+                            "AllAppropriateForLoad",
+                            "Combustable",
+                            "C",
+                            "Corrosive",
+                            "Cr",
+                            "Explosive",
+                            "E",
+                            "Flammable",
+                            "F",
+                            "FlammableSolid",
+                            "FS",
+                            "Gas",
+                            "G",
+                            "Organic",
+                            "O",
+                            "Poison",
+                            "P",
+                            "PoisonousInhalation",
+                            "PI",
+                            "Radioactive",
+                            "R",
+                            "None"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Routes/FromMajorRoads": {
+            "get": {
+                "description": "Find routes from major roads in four directions (West, North, East, South).",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "destination",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the final location for all the routes.",
+                        "example": "47.610,-122.107"
+                    },
+                    {
+                        "name": "exclude",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies to return only starting points for each major route in the response.",
+                        "enum": ["routes"]
+                    },
+                    {
+                        "name": "routeAttributes",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specify to include or exclude parts of the routes response.",
+                        "type": "string",
+                        "enum": [
+                            "routePath",
+                            "excludeItinerary"
+                        ]
+                    },
+                    {
+                        "name": "routePathOutput",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies whether the response should include information about Point (latitude and longitude) values for each route’s path.",
+                        "type": "string",
+                        "enum": ["Points", "None"]
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units to use for distance in the response.",
+                        "enum": [
+                            "Kilometer",
+                            "km",
+                            "Mile",
+                            "mi"
+                        ],
+                        "default": "km"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Routes/OptimizeItinerary": {
+            "post": {
+                "description": "Synchronous POST Optimize Itinerary",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "body",
+                        "required": true,
+                        "in": "body",
+                        "description": "Specifies the final location for all the routes.",
+                        "schema": {
+                            "$ref": "#/definitions/OptimizeItinerary"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/OptimizeItineraryAsync": {
+            "post": {
+                "description": "Synchronous POST Optimize Itinerary",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "body",
+                        "required": true,
+                        "in": "body",
+                        "description": "Specifies the final location for all the routes.",
+                        "schema": {
+                            "$ref": "#/definitions/OptimizeItinerary"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/DistanceMatrix": {
+            "post": {
+                "description": "Synchronous Distance Matrix Request URL (POST)",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "body",
+                        "required": true,
+                        "in": "body",
+                        "description": "Specifies the final location for all the routes.",
+                        "schema": {
+                            "$ref": "#/definitions/DistanceMatrix"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/DistanceMatrixAsync": {
+            "post": {
+                "description": "ASynchronous Distance Matrix Request URL (POST)",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "body",
+                        "required": true,
+                        "in": "body",
+                        "description": "Specifies the final location for all the routes.",
+                        "schema": {
+                            "$ref": "#/definitions/DistanceMatrix"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/Isochrones": {
+            "get": {
+                "description": "Calculate an Isochrone",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "waypoint",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "The point around which the isochrone will be calculated.",
+                        "example": "47.610,-122.107 "
+                    },
+                    {
+                        "name": "maxTime",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "The maximum travel time in the specified time units in which the isochrone polygon is generated. Either maxDistance and maxTime is required, not both.",
+                        "maximum": 60,
+                        "example": 10
+                    },
+                    {
+                        "name": "timeUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units in which the maxTime value is specified.",
+                        "enum": [
+                            "minute",
+                            "second "
+                        ]
+                    },
+                    {
+                        "name": "maxDistance",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": " The maximum travel distance in the specified distance units in which the isochrone polygon is generated. if travelMode is driving or walking, maxDistance is required",
+                        "maximum": 60,
+                        "example": 10
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "type": "string",
+                        "in": "query",
+                        "description": "The units in which the maxDistance value is specified.",
+                        "required": false,
+                        "enum": [
+                            "mile",
+                            "mi",
+                            "kilometer",
+                            "km"
+                        ]
+                    },
+                    {
+                        "name": "dateTime",
+                        "type": "string",
+                        "in": "query",
+                        "required": false,
+                        "description": "if travelMode is not driving or transit, dateTime is not required",
+                        "example": "03/01/2011 05:42:00"
+                    },
+                    {
+                        "name": "optimize",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies what parameters to use to optimize the isochrone route",
+                        "type": "string",
+                        "enum": [
+                            "distance",
+                            "time", 
+                            "timeWithTraffic"
+                        ]
+                    },
+                    {
+                        "name": "travelMode",
+                        "required": false,
+                        "in": "query",
+                        "description": " Indicates the which routing profile to snap the points to.",
+                        "type": "string",
+                        "enum": [
+                            "driving", "walking", "transit", "truck"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/IsochronesAsyncCallback": {
+            "get": {
+                "description": "Calculate an Isochrone",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "waypoint",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "The point around which the isochrone will be calculated.",
+                        "example": "47.610,-122.107 "
+                    },
+                    {
+                        "name": "maxTime",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "The maximum travel time in the specified time units in which the isochrone polygon is generated. Either maxDistance and maxTime is required, not both.",
+                        "maximum": 60,
+                        "example": 10
+                    },
+                    {
+                        "name": "timeUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units in which the maxTime value is specified.",
+                        "enum": [
+                            "minute",
+                            "second "
+                        ]
+                    },
+                    {
+                        "name": "maxDistance",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": " The maximum travel distance in the specified distance units in which the isochrone polygon is generated. if travelMode is driving or walking, maxDistance is required",
+                        "maximum": 60,
+                        "example": 10
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "type": "string",
+                        "in": "query",
+                        "description": "The units in which the maxDistance value is specified.",
+                        "required": false,
+                        "enum": [
+                            "mile",
+                            "mi",
+                            "kilometer",
+                            "km"
+                        ]
+                    },
+                    {
+                        "name": "dateTime",
+                        "type": "string",
+                        "in": "query",
+                        "required": false,
+                        "description": "if travelMode is not driving or transit, dateTime is not required",
+                        "example": "03/01/2011 05:42:00"
+                    },
+                    {
+                        "name": "optimize",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies what parameters to use to optimize the isochrone route",
+                        "type": "string",
+                        "enum": [
+                            "distance",
+                            "time", 
+                            "timeWithTraffic"
+                        ]
+                    },
+                    {
+                        "name": "travelMode",
+                        "required": false,
+                        "in": "query",
+                        "description": " Indicates the which routing profile to snap the points to.",
+                        "type": "string",
+                        "enum": [
+                            "driving", "walking", "transit", "truck"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/SnapToRoadAsync": {
+            "post": {
+                "description": "Snap Points to Roads",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "body",
+                        "required": true,
+                        "in": "body",
+                        "description": "Specifies the final location for all the routes.",
+                        "schema": {
+                            "$ref": "#/definitions/SnapToRoad"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/SnapToRoadAsyncCallback": {
+            "post": {
+                "description": "Snap Points to Roads",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "body",
+                        "required": true,
+                        "in": "body",
+                        "description": "Specifies the final location for all the routes.",
+                        "schema": {
+                            "$ref": "#/definitions/SnapToRoad"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/LocalInsights": {
+            "get": {
+                "description": "Get Local Insights",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "waypoint",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "The point around which the isochrone will be calculated.",
+                        "example": "47.610,-122.107 "
+                    },
+                    {
+                        "name": "maxTime",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "The maximum travel time in the specified time units in which the isochrone polygon is generated. if optimize is Time or TimeWithTraffic, maxTime is required. Either maxDistance and maxTime is required, not both.",
+                        "maximum": 60,
+                        "example": 10
+                    },
+                    {
+                        "name": "timeUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units in which the maxTime value is specified.",
+                        "enum": [
+                            "minute",
+                            "second "
+                        ]
+                    },
+                    {
+                        "name": "maxDistance",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": " The maximum travel distance in the specified distance units in which the isochrone polygon is generated. if travelMode is driving or walking, maxDistance is required",
+                        "maximum": 50,
+                        "example": 10
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "type": "string",
+                        "in": "query",
+                        "description": "The units in which the maxDistance value is specified.",
+                        "required": false,
+                        "enum": [
+                            "mile",
+                            "mi",
+                            "kilometer",
+                            "km"
+                        ]
+                    },
+                    {
+                        "name": "type",
+                        "required": true,
+                        "description": "A comma separated list of type IDs.",
+                        "type": "string",
+                        "in": "query",
+                        "enum": [
+                            "EatDrink",
+                            "SeeDo",
+                            "Shop",
+                            "BanksAndCreditUnions",
+                            "Hospitals",
+                            "HotelsAndMotels",
+                            "Parking"
+                        ]
+                    },
+                    {
+                        "name": "dateTime",
+                        "required": false,
+                        "in": "query",
+                        "description": "The timeType parameter identifies the desired transit time, such as arrival time or departure time. if travelMode is driving, dateTime is required",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "03/01/2011 05:42:00"
+                    },
+                    {
+                        "name": "optimize",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies what parameters to use to optimize the route on the map.",
+                        "type": "string",
+                        "enum": [
+                            "distance",
+                            "time"
+                        ]
+                    },
+                    {
+                        "name": "travelMode",
+                        "required": false,
+                        "in": "query",
+                        "description": "The mode of travel for the route.",
+                        "type": "string",
+                        "enum": [
+                            "driving", "walking", "transit"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        },
+        "/Routes/LocalInsightsAsync": {
+            "get": {
+                "description": "Get Local Insights",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "waypoint",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "The point around which the isochrone will be calculated.",
+                        "example": "47.610,-122.107 "
+                    },
+                    {
+                        "name": "maxTime",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "The maximum travel time in the specified time units in which the isochrone polygon is generated. if optimize is Time or TimeWithTraffic, maxTime is required. Either maxDistance and maxTime is required, not both.",
+                        "maximum": 60,
+                        "example": 10
+                    },
+                    {
+                        "name": "timeUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The units in which the maxTime value is specified.",
+                        "enum": [
+                            "minute",
+                            "second "
+                        ]
+                    },
+                    {
+                        "name": "maxDistance",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": " The maximum travel distance in the specified distance units in which the isochrone polygon is generated. if travelMode is driving or walking, maxDistance is required",
+                        "maximum": 50,
+                        "example": 10
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "type": "string",
+                        "in": "query",
+                        "description": "The units in which the maxDistance value is specified.",
+                        "required": false,
+                        "enum": [
+                            "mile",
+                            "mi",
+                            "kilometer",
+                            "km"
+                        ]
+                    },
+                    {
+                        "name": "type",
+                        "required": true,
+                        "in": "query",
+                        "description": "A comma separated list of type IDs.",
+                        "type": "string",
+                        "enum": [
+                            "EatDrink",
+                            "SeeDo",
+                            "Shop",
+                            "BanksAndCreditUnions",
+                            "Hospitals",
+                            "HotelsAndMotels",
+                            "Parking"
+                        ]
+                    },
+                    {
+                        "name": "dateTime",
+                        "required": false,
+                        "in": "query",
+                        "description": "The timeType parameter identifies the desired transit time, such as arrival time or departure time. if travelMode is driving, dateTime is required",
+                        "type": "string",
+                        "format": "datetime",
+                        "example": "03/01/2011 05:42:00"
+                    },
+                    {
+                        "name": "optimize",
+                        "required": false,
+                        "in": "query",
+                        "description": "Specifies what parameters to use to optimize the route on the map.",
+                        "type": "string",
+                        "enum": [
+                            "distance",
+                            "time"
+                        ]
+                    },
+                    {
+                        "name": "travelMode",
+                        "required": false,
+                        "in": "query",
+                        "description": "The mode of travel for the route.",
+                        "type": "string",
+                        "enum": [
+                            "driving", "walking", "transit"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "SnapToRoad": {
+            "type": "object",
+            "required": [
+                "points"
+            ],
+            "properties": {
+                "points": {
+                    "$ref": "#/definitions/Location"
+                },
+                "interpolate": {
+                    "type": "boolean"
+                },
+                "includeSpeedLimit": {
+                    "type": "boolean"
+                },
+                "includeTruckSpeedLimit": {
+                    "type": "boolean"
+                },
+                "speedUnit": {
+                    "type": "string",
+                    "enum": [
+                        "MPH",
+                        "KPH"
+                    ]
+                },
+                "travelMode": {
+                    "type": "string",
+                    "enum": [
+                        "driving",
+                        "walking"
+                    ]
+                },
+                "vehicleSpec": {
+                    "$ref": "#/definitions/VehicleSpec"
+                }
+            }
+        },
+        "VehicleSpec": {
+            "type": "object",
+            "properties": {
+                "dimensionUnit": {
+                    "type": "string",
+                    "enum": [
+                        "meter",
+                        "m",
+                        "foot",
+                        "ft"
+                    ]
+                },
+                "weightUnit": {
+                    "type": "string",
+                    "enum": [
+                        "kilogram ",
+                        "kg",
+                        "pound ",
+                        "lb"
+                    ]
+                },
+                "vehicleHeight": {
+                    "type": "double",
+                    "example": 5
+                },
+                "vehicleWidth": {
+                    "type": "double",
+                    "example": 3.5
+                },
+                "vehicleLength": {
+                    "type": "double",
+                    "example": 30
+                },
+                "vehicleWeight": {
+                    "type": "double",
+                    "example": 30000
+                },
+                "vehicleAxles": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "vehicleTrailers": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "vehicleSemi": {
+                    "type": "boolean"
+                },
+                "vehicleMaxGradient": {
+                    "type": "double",
+                    "example": 10
+                },
+                "vehicleMinTurnRadius": {
+                    "type": "double",
+                    "example": 15
+                },
+                "vehicleAvoidCrossWind": {
+                    "type": "boolean"
+                },
+                "vehicleAvoidGroundingRisk": {
+                    "type": "boolean"
+                },
+                "vehicleHazardousMaterials": {
+                    "type": "string",
+                    "enum": [
+                        "Combustable",
+                        "C",
+                        "Corrosive",
+                        "Cr",
+                        "Explosive",
+                        "E",
+                        "Flammable",
+                        "F",
+                        "FlammableSolid",
+                        "FS",
+                        "Gas",
+                        "G",
+                        "GoodsHarmfulToWater",
+                        "WH",
+                        "Organic",
+                        "O",
+                        "Other",
+                        "Poison",
+                        "P",
+                        "PoisonousInhalation",
+                        "PI",
+                        "Radioactive",
+                        "R",
+                        "None"
+                    ]
+                },
+                "vehicleHazardousPermits": {
+                    "type": "string",
+                    "enum": [
+                        "AllAppropriateForLoad",
+                        "Combustable",
+                        "C",
+                        "Corrosive",
+                        "Cr",
+                        "Explosive",
+                        "E",
+                        "Flammable",
+                        "F",
+                        "FlammableSolid",
+                        "FS",
+                        "Gas",
+                        "G",
+                        "Organic",
+                        "O",
+                        "Poison",
+                        "P",
+                        "PoisonousInhalation",
+                        "PI",
+                        "Radioactive",
+                        "R",
+                        "None"
+                    ]
+                }
+            }
+        },
+        "DistanceMatrix": {
+            "type": "object", 
+            "required": [
+                "origins",
+                "travelMode"
+            ],
+            "properties": {
+                "origins": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Location"
+                    }
+                },
+                "destinations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Location"
+                    }
+                },
+                "travelMode": {
+                    "type": "string",
+                    "enum": [
+                        "driving",
+                        "walking",
+                        "transit"
+                    ]
+                },
+                "startTime": {
+                    "type": "string",
+                    "description":"if travelMode is driving, startTime is required",
+                    "format": "datetime"
+                },
+                "endTime": {
+                    "type": "string",
+                    "description":"if travelMode is driving, endTime is required",
+                    "format": "datetime"
+                },
+                "resolution": {
+                    "type": "integer",
+                    "description":"if travelMode is driving, resolution is required",
+                    "enum": [1, 2, 3, 4]
+                },
+                "distanceUnit": {
+                    "type": "string",
+                    "enum": [
+                        "mile",
+                        "mi",
+                        "kilometer",
+                        "km"
+                    ]
+                },
+                "timeUnit": {
+                    "type": "string",
+                    "enum": [
+                        "minute",
+                        "second"
+                    ]
+                }
+            }
+        },
+        "OptimizeItinerary": {
+            "type": "object",
+            "required": [
+                "agents",
+                "itineraryItems"
+            ],
+            "properties": {
+                "agents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Agent"
+                    }
+                },
+                "itineraryItems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ItineraryItem"
+                    }
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "SimpleRequest",
+                        "TrafficRequest"
+                    ]
+                },
+                "roadnetwork": {
+                    "type": "boolean"
+                },
+                "costvalue": {
+                    "type": "string",
+                    "enum": [
+                        "TravelTime",
+                        "Distance",
+                        "Price"
+                    ]
+                }
+            }
+        },
+        "ItineraryItem": {
+            "type": "object",
+            "required": [
+                "name",
+                "openingTime",
+                "closingTime",
+                "dwellTime",
+                "priority",
+                "location"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "openingTime": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "closingTime": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "dwellTime": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "quantity": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "depot": {
+                    "type": "boolean"
+                },
+                "location": {
+                    "$ref": "#/definitions/Location"
+                },
+                "dropOffFrom": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "Agent": {
+            "type": "object",
+            "required": [
+                "name", 
+                "shifts"    
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "shifts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Shift"
+                    }
+                },
+                "price": {
+                    "$ref": "#/definitions/Price"
+                },
+                "capacity": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "Price": {
+            "type": "object",
+            "required": [
+                "fixedPrice",
+                "pricePerKM",
+                "pricePerHour"
+            ],
+            "properties": {
+                "fixedPrice": {
+                    "type": "double"
+                },
+                "pricePerKM": {
+                    "type": "double"
+                },
+                "pricePerHour": {
+                    "type": "double"
+                }
+            }
+        },
+        "Shift": {
+            "type": "object",
+            "required": [
+                "startTime",
+                "startLocation",
+                "endTime",
+                "endLocation"
+            ],
+            "properties": {
+                "startTime": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "startLocation": {
+                    "$ref": "#/definitions/Location"
+                },
+                "endTime": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "endLocation":{
+                    "$ref": "#/definitions/Location"
+                },
+                "breaks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Break"
+                    }
+                }
+            }
+        },
+        "Break": {
+            "type": "object",
+            "required": [
+                "startTime",
+                "endTime"
+            ],
+            "properties": {
+                "startTime": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "endTime": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "duration": {
+                    "type": "string"
+                }
+            }
+        },
+        "Location": {
+            "type": "object", 
+            "required": [
+                "latitude",
+                "longitude"
+            ],
+            "properties": {
+                "latitude": {
+                    "type": "double",
+                    "maximum": 90,
+                    "minimum": -90
+                },
+                "longitude": {
+                    "type": "double",
+                    "maximum": 180,
+                    "minimum": -180
+                }
+            }
+        }
+    }
+}

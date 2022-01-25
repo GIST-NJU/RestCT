@@ -13,6 +13,7 @@ from src.Dto.operation import Operation, Response
 from src.Dto.constraint import Constraint, Processor
 from src.Dto.parameter import AbstractParam, ValueType
 from collections import defaultdict
+from loguru import logger
 
 
 class CA:
@@ -38,19 +39,20 @@ class CA:
         # idCount: delete created resource
         self._idCounter: List[(int, str)] = list()
 
-        from src.config import Config
+        from src.restct import Config
         self._aStrength = Config.a_strength  # cover strength for all parameters
         self._eStrength = Config.e_strength  # cover strength for essential parameters
 
-        filePath = Path(Config.output_folder) / "unresolvedParams.json"
+        filePath = Path(Config.dataPath) / "unresolvedParams.json"
         if not filePath.exists():
             self._unresolvedParam = set()
         else:
             with filePath.open("r") as fp:
                 self._unresolvedParam = set(json.load(fp).get("unresolvedParams", []))
 
-    def main(self, logger, budget) -> bool:
+    def main(self, budget) -> bool:
         for i, operation in enumerate(self._sequence):
+            logger.debug("{}-th operation: {}*{}", i + 1, operation.method.value, operation.url)
             chainList = self.getChains()
             urlTuple = tuple([op.__repr__() for op in self._sequence[:i + 1]])
             while len(chainList):
@@ -66,13 +68,13 @@ class CA:
                 operation.addConstraints(constraints)
 
                 coverArray: List[Dict[str, Tuple[ValueType, object]]] = self.genEssentialParamsCase(operation, urlTuple, chain)
+                logger.info("        {}-th operation essential parameters covering array size: {}, parameters: {}, constraints: {}".format(i + 1, len(coverArray), len(coverArray[0]), len(operation.constraints)))
                 essentialSender = SendRequest(operation, coverArray, chain)
                 statusCodes, responses = essentialSender.main()
-                logger.info("   {}-th operation essential parameters covering array size: {}, parameters: {}, constraints: {}".format(i + 1, len(coverArray), len(coverArray[0]), len(operation.constraints)))
                 self._handleFeedback(chain, operation, statusCodes, responses, coverArray, successUrlTuple, False)
-                successCodes = set(filter(lambda c: c in range(200, 300), statusCodes))
+                eSuccessCodes = set(filter(lambda c: c in range(200, 300), statusCodes))
                 bugCodes = set(filter(lambda c: c in range(500, 600), statusCodes))
-                if len(successCodes) > 0:
+                if len(eSuccessCodes) > 0:
                     self._saveSuccessSeq(successUrlTuple)
                 elif len(bugCodes) > 0:
                     self._saveSuccessSeq(successUrlTuple)
@@ -80,9 +82,10 @@ class CA:
                     pass
 
                 coverArray: List[Dict[str, Tuple[ValueType, object]]] = self.genAllParamsCase(operation, urlTuple, chain)
+                logger.info("        {}-th operation all parameters covering array size: {}, parameters: {}".format(i + 1, len(coverArray), len(coverArray[0])))
+                logger.info("*" * 100)
                 allSender = SendRequest(operation, coverArray, chain)
                 statusCodes, responses = allSender.main()
-                logger.info("   {}-th operation all parameters covering array size: {}, parameters: {}".format(i + 1, len(coverArray), len(coverArray[0])))
                 self._handleFeedback(chain, operation, statusCodes, responses, coverArray, successUrlTuple, True)
 
                 successCodes = set(filter(lambda c: c in range(200, 300), statusCodes))
@@ -94,18 +97,19 @@ class CA:
                     self._saveSuccessSeq(successUrlTuple)
                     break
                 else:
-                    errorResponses = [responses[j] for j, sc in enumerate(statusCodes) if sc in range(400, 500)]
-                    unresolvedParamList = processor.analyseError(errorResponses)
-                    for up in unresolvedParamList:
-                        if operation.__repr__() + up not in self._unresolvedParam:
-                            self._unresolvedParam.add(operation.__repr__() + up)
-                            removedCons = list()
-                            for c in operation.constraints:
-                                if up in c.paramNames:
-                                    removedCons.append(c)
-                            for rc in removedCons:
-                                operation.constraints.remove(rc)
-                            break
+                    if len(eSuccessCodes) == 0:
+                        errorResponses = [responses[j] for j, sc in enumerate(statusCodes) if sc in range(400, 500)]
+                        unresolvedParamList = processor.analyseError(errorResponses)
+                        for up in unresolvedParamList:
+                            if operation.__repr__() + up not in self._unresolvedParam:
+                                self._unresolvedParam.add(operation.__repr__() + up)
+                                removedCons = list()
+                                for c in operation.constraints:
+                                    if up in c.paramNames:
+                                        removedCons.append(c)
+                                for rc in removedCons:
+                                    operation.constraints.remove(rc)
+                                break
         logger.info("   unresolved parameters: {}".format(self._unresolvedParam))
         self.clearUp()
         return True
@@ -124,8 +128,8 @@ class CA:
                 continue
 
         # save unresolved parameters
-        from src.config import Config
-        filePath = Path(Config.output_folder) / "unresolvedParams.json"
+        from src.restct import Config
+        filePath = Path(Config.dataPath) / "unresolvedParams.json"
         with filePath.open("w") as fp:
             data = {"unresolvedParams": list(self._unresolvedParam)}
             json.dump(data, fp)
@@ -139,21 +143,27 @@ class CA:
             if operation.method is Method.POST and sc < 300:
                 self._saveIdCount(operation, responses[index])
             if sc in range(500, 600):
-                CA._saveBug(operation.url, operation.method.value, coverArray[index], sc, responses[index])
+                CA._saveBug(operation.url, operation.method.value, coverArray[index], sc, responses[index], chain)
 
     def _saveIdCount(self, operation, response):
         if isinstance(response, dict):
             iid = response.get("id")
-            self._idCounter.append((int(iid), operation.url))
+            try:
+                self._idCounter.append((iid, operation.url))
+            except TypeError:
+                pass
         elif isinstance(response, list):
             for r in response:
                 iid = r.get("id")
-                self._idCounter.append((int(iid), operation.url))
+                try:
+                    self._idCounter.append((int(iid), operation.url))
+                except TypeError:
+                    pass
         else:
             pass
 
     @staticmethod
-    def _saveBug(url: str, method: str, parameters: dict, statusCode: int, response: Union[list, dict, str]):
+    def _saveBug(url: str, method: str, parameters: dict, statusCode: int, response: Union[list, dict, str], chain: dict):
         opStrSet = {d.get("method") + d.get("url") + str(d.get("statusCode")) for d in CA.bugList}
         if method + url + str(statusCode) in opStrSet:
             return
@@ -163,14 +173,15 @@ class CA:
             "parameters": {paramName: (vt.value, v) for paramName, (vt, v) in parameters.items()},
             "statusCode": statusCode,
             "response": response,
+            "responseChain": chain
         }
         CA.bugList.append(bugInfo)
 
         # save to json
-        from src.config import Config
-        folder = Path(Config.output_folder) / "bug/"
+        from src.restct import Config
+        folder = Path(Config.dataPath) / "bug/"
         if not folder.exists():
-            folder.mkdir()
+            folder.mkdir(parents=True)
         bugFile = folder / "bug_{}.json".format(str(len(opStrSet)))
         with bugFile.open("w") as fp:
             json.dump(bugInfo, fp)
@@ -206,8 +217,10 @@ class CA:
             return [{}]
 
         reuseSeq = CA.reuseEssentialSeqDict.get(urlTuple, list())
+
         if len(reuseSeq):
             # 执行过
+            logger.debug("        use reuseSeq info: {}, parameters: {}", len(reuseSeq), len(reuseSeq[0].keys()))
             return reuseSeq
         else:
             paramList: List[AbstractParam] = list()
@@ -216,6 +229,9 @@ class CA:
             paramNames = [p.name for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
             domains = [p.domain for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
 
+            logger.debug("        generate new domains...")
+            for i, p in enumerate(paramNames):
+                logger.debug("            {}: {}-{}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
             try:
                 acts = ACTS(paramNames, domains, operation.constraints, self._eStrength)
             except Exception:
@@ -226,11 +242,12 @@ class CA:
     def genAllParamsCase(self, operation, urlTuple, chain) -> List[Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]]:
         allParamList = operation.parameterList
         if len(allParamList) == 0:
-            return list()
+            return [{}]
 
         reuseSeq = CA.reuseAllSeqDict.get(urlTuple, list())
         if len(reuseSeq):
             # 执行过
+            logger.debug("        use reuseSeq info: {}, parameters: {}", len(reuseSeq), len(reuseSeq[0].keys()))
             return reuseSeq
         else:
             paramList: List[AbstractParam] = operation.genDomain(chain, CA.okValueDict)
@@ -250,8 +267,14 @@ class CA:
                 paramNames = newParamNames
                 domains = newDomains
 
-                if len(operation.constraints) > 0:
-                    return [{}]
+                for c in operation.constraints:
+                    for p in c.paramNames:
+                        if p in self._unresolvedParam:
+                            return [{}]
+
+            logger.debug("        generate new domains...")
+            for i, p in enumerate(paramNames):
+                logger.debug("            {}: {}-{}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
 
             try:
                 acts = ACTS(paramNames, domains, operation.constraints, self._aStrength)
@@ -280,8 +303,8 @@ class CA:
 
 class ACTS:
     def __init__(self, paramNames: list, domains: list, constraints: List[Constraint], strength: int):
-        from src.config import Config
-        self._workplace = Path(Config.output_folder) / "acts"
+        from src.restct import Config
+        self._workplace = Path(Config.dataPath) / "acts"
         if not self._workplace.exists():
             self._workplace.mkdir()
 
@@ -336,7 +359,7 @@ class ACTS:
 
     def callActs(self, inputFile) -> Path:
         outputFile = self._workplace / "output.txt"
-        from src.config import Config
+        from src.restct import Config
         jarPath = Path(Config.jar)
         algorithm = "ipog"
 
@@ -402,34 +425,33 @@ class SendRequest:
         body = dict()
 
         for p in self._operation.parameterList:
-            if p.name in self._coverArray[0].keys():
-                value = p.printableValue(self._responses)
-                if value is None:
-                    if p.loc is Loc.Path:
-                        url = url.replace("{" + p.name + "}", str("abc"))
-                    # assert p.loc is not Loc.Path, "{}:{}".format(p.name, p.loc.value)
-                else:
-                    if p.type is DataType.File:
-                        files = value
-                    elif p.loc is Loc.Path:
-                        assert p.name != "" and p.name is not None
-                        url = url.replace("{" + p.name + "}", str(value))
-                    elif p.loc is Loc.Query:
-                        params[p.name] = value
-                    elif p.loc is Loc.Header:
-                        headers[p.name] = value
-                    elif p.loc is Loc.FormData:
-                        if isinstance(value, dict):
-                            formData.update(value)
-                        else:
-                            formData[p.name] = value
-                    elif p.loc is Loc.Body:
-                        if isinstance(value, dict):
-                            body.update(value)
-                        else:
-                            body[p.name] = value
+            value = p.printableValue(self._responses)
+            if value is None:
+                if p.loc is Loc.Path:
+                    url = url.replace("{" + p.name + "}", str("abc"))
+                # assert p.loc is not Loc.Path, "{}:{}".format(p.name, p.loc.value)
+            else:
+                if p.type is DataType.File:
+                    files = value
+                elif p.loc is Loc.Path:
+                    assert p.name != "" and p.name is not None
+                    url = url.replace("{" + p.name + "}", str(value))
+                elif p.loc is Loc.Query:
+                    params[p.name] = value
+                elif p.loc is Loc.Header:
+                    headers[p.name] = value
+                elif p.loc is Loc.FormData:
+                    if isinstance(value, dict):
+                        formData.update(value)
                     else:
-                        raise Exception("unexpected Param Loc Type: {}".format(p.name))
+                        formData[p.name] = value
+                elif p.loc is Loc.Body:
+                    if isinstance(value, dict):
+                        body.update(value)
+                    else:
+                        body[p.name] = value
+                else:
+                    raise Exception("unexpected Param Loc Type: {}".format(p.name))
 
         kwargs = dict()
         kwargs["url"] = url
@@ -452,6 +474,9 @@ class SendRequest:
     def send(self, **kwargs) -> Tuple[int, Union[str, dict, None]]:
         SendRequest.callNumber += 1
 
+        for k, v in kwargs.items():
+            logger.debug("{}: {}", k, v)
+
         try:
             feedback = getattr(requests, self._operation.method.value.lower())(**kwargs, timeout=10, auth=Auth())
         except TypeError:
@@ -464,8 +489,11 @@ class SendRequest:
             feedback = None
 
         if feedback is None:
+            logger.debug("status code: {}", 600)
             return 600, None
         try:
+            logger.debug("status code: {}", feedback.status_code)
+            logger.debug(feedback.json())
             return feedback.status_code, feedback.json()
         except json.JSONDecodeError:
             return feedback.status_code, feedback.text
@@ -473,10 +501,13 @@ class SendRequest:
 
 class Auth:
     def __init__(self):
-        from src.config import Config
-        self.auth = Config.authToken
+        from src.restct import Config
+        self.headerAuth = Config.header
+        self.queryAuth = Config.query
 
     def __call__(self, r):
-        for key, token in self.auth.items():
+        for key, token in self.headerAuth.items():
             r.headers[key] = token
+        for key, token in self.queryAuth.items():
+            r.params[key] = token
         return r

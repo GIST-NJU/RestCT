@@ -1,0 +1,475 @@
+{
+    "swagger": "2.0",
+    "schemes": [
+        "http"
+    ],
+    "host": "dev.virtualearth.net",
+    "basePath": "/REST/v1",
+    "paths": {
+        "/Locations": {
+            "get": {
+                "description": "Get the latitude and longitude coordinates based on a set of address values for any country",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "adminDistrict",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "The subdivision name in the country or region for an address. This element is typically treated as the first order administrative subdivision, but in some cases it is the second, third, or fourth order subdivision in a country, dependency, or region.",
+                        "example": "WA"
+                    },
+                    {
+                        "name": "locality",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The locality, such as the city or neighborhood, that corresponds to an address.",
+                        "example": "Seattle"
+                    },
+                    {
+                        "name": "postalCode",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The post code, postal code, or ZIP Code of an address.",
+                        "example": "98178"
+                    },
+                    {
+                        "name": "addressLine",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " The official street line of an address relative to the area, as specified by the Locality, or PostalCode, properties. Typical use of this element would be to provide a street address or any official address.",
+                        "example": "1 Microsoft Way"
+                    },
+                    {
+                        "name": "countryRegion",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "The ISO country code for the country.",
+                        "example": "AU"
+                    },
+                    {
+                        "name": "includeNeighborhood",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Specifies to include the neighborhood in the response when it is available.",
+                        "enum": [
+                            0,
+                            1
+                        ],
+                        "default": 0
+                    },
+                    {
+                        "name": "include",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies additional values to include.",
+                        "enum": [
+                            "ciso2"
+                        ]
+                    },
+                    {
+                        "name": "maxResults",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Specifies the maximum number of locations to return in the response.",
+                        "maximum": 20,
+                        "minimum": 1
+                    },
+                    {
+                        "name": "strictMatch",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": " Restricts the geocode result to the country or region that is specified in the countryRegion field and the state, province or territory specified in the adminDistrict field.",
+                        "enum": [
+                            0,
+                            1
+                        ],
+                        "default": 0
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Locations/{point}": {
+            "get": {
+                "description": "Get an address for a specified point (latitude and longitude).",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "includeEntityTypes",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the entity types that you want to return in the response",
+                        "enum": [
+                            "Address",
+                            "Neighborhood",
+                            "PopulatedPlace",
+                            "Postcode1",
+                            "AdminDivision1",
+                            "AdminDivision2",
+                            "CountryRegion"
+                        ]
+                    },
+                    {
+                        "name": "point",
+                        "required": true,
+                        "in": "path",
+                        "type": "string",
+                        "description": "The coordinates of the location that you want to reverse geocode",
+                        "example": "47.64054,-122.12934"
+                    },
+                    {
+                        "name": "includeNeighborhood",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Specifies to include the neighborhood in the response when it is available.",
+                        "enum": [
+                            0,
+                            1
+                        ],
+                        "default": 0
+                    },
+                    {
+                        "name": "include",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies additional values to include.",
+                        "enum": [
+                            "ciso2"
+                        ]
+                    },
+                    {
+                        "name": "verboseplacenames",
+                        "required": false,
+                        "in": "query",
+                        "type": "boolean",
+                        "description": "If true: AdminDistrict names will be in expanded",
+                        "default": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Locations/{query}": {
+            "get": {
+                "description": "Return latitude and longitude coordinates for a location specified by a query",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "query",
+                        "required": true,
+                        "in": "path",
+                        "type": "string",
+                        "description": "A string that contains information about a location, such as an address or landmark name.",
+                        "example": "White%20House"
+                    },
+                    {
+                        "name": "includeNeighborhood",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Specifies to include the neighborhood in the response when it is available.",
+                        "enum": [
+                            0,
+                            1
+                        ],
+                        "default": 0
+                    },
+                    {
+                        "name": "include",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies additional values to include.",
+                        "enum": [
+                            "ciso2",
+                            "queryParse",
+                            "queryParse, ciso2",
+                            "ciso2, queryParse"
+                        ]
+                    },
+                    {
+                        "name": "maxResults",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Specifies the maximum number of locations to return in the response.",
+                        "maximum": 20,
+                        "minimum": 1
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/LocationRecog/{point}": {
+            "get": {
+                "description": "Get an address for a specified point (latitude and longitude).",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "point",
+                        "required": true,
+                        "in": "path",
+                        "type": "string",
+                        "description": "The coordinates of the location that you want to reverse geocode",
+                        "example": "47.64054,-122.12934"
+                    },
+                    {
+                        "name": "radius",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Search radius in kilometers (KM).",
+                        "maximum": 2
+                    },
+                    {
+                        "name": "top",
+                        "required": false,
+                        "in": "query",
+                        "type": "integer",
+                        "description": " The maximum number of entities returned.",
+                        "maximum": 20
+                    },
+                    {
+                        "name": "dateTime",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "format": "datetime",
+                        "description": " Date and time at which the location is visited, in UTC format",
+                        "example": "2018-05-09 13:34:42Z"
+                    },
+                    {
+                        "name": "distanceUnit",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": " Unit for the radius parameter",
+                        "enum": [
+                            "kilometer",
+                            "km",
+                            "mile",
+                            "ml"
+                        ],
+                        "default": "km"
+                    },
+                    {
+                        "name": "verboseplacenames",
+                        "required": false,
+                        "in": "query",
+                        "type": "boolean",
+                        "description": "If true: admin1 names will be in expanded form",
+                        "default": false
+                    },
+                    {
+                        "name": "includeEntityTypes",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the entity types that you want to return in the response",
+                        "enum": [
+                            "businessAndPOI",
+                            "naturalPOI",
+                            "address"
+                        ],
+                        "default": "businessAndPOI"
+                    },
+                    {
+                        "name": "type",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "if includeEntityTypes is businessAndPOI, type is required.",
+                        "enum": [
+                            "EatDrink",
+                            "SeeDo",
+                            "Shop",
+                            "BanksAndCreditUnions",
+                            "Hospitals",
+                            "HotelsAndMotels",
+                            "Parking"
+                        ]
+                    },
+                    {
+                        "name": "output",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Output format for the response.",
+                        "enum": [
+                            "JSON",
+                            "XML"
+                        ]
+                    }
+                    
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/LocalSearch": {
+            "get": {
+                "description": "Make a Local Search API request based on a string query by specifying a user location.",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "query",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "if searching by query. The query used to search for local entities."
+                    },
+                    {
+                        "name": "type",
+                        "required": false,
+                        "in": "query",
+                        "enum": [
+                            "EatDrink",
+                            "SeeDo",
+                            "Shop",
+                            "BanksAndCreditUnions",
+                            "Hospitals",
+                            "HotelsAndMotels",
+                            "Parking"
+                        ],
+                        "type": "string",
+                        "description": "Either query or type is required, not both"
+                    },
+                    {
+                        "name": "maxResults",
+                        "required": false,
+                        "in": "query",
+                        "description": " Specifies the maximum number of locations to return in the response.",
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 25,
+                        "default": 5
+                    },
+                    {
+                        "name": "userCircularMapView",
+                        "required": false,
+                        "in": "query",
+                        "description": "A circular geographic region",
+                        "type": "string",
+                        "example": "48.604311,-122.981998,5000"
+                    },
+                    {
+                        "name": "userLocation",
+                        "required": false,
+                        "in": "query",
+                        "description": "If userMapView and userCircularMapView are not present, userLocation is required",
+                        "type": "string",
+                        "example": "48.604311,-122.981998,5000"
+                    },
+                    {
+                        "name": "userMapView",
+                        "required": false,
+                        "in": "query",
+                        "description": "If userMapView and userCircularView are not present, userLocation is required",
+                        "type": "string",
+                        "example": "29.8171041,-122.981995,48.604311,-95.5413725"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Local Search API requests return a list of LocalSearch resources."
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Location": {
+            "type": "object",
+            "properties": {
+                "statusCode": {
+                    "type": "integer"
+                }
+            }
+
+        }
+    }
+}

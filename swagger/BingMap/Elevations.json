@@ -1,0 +1,211 @@
+{
+    "swagger": "2.0",
+    "schemes": [
+        "http"
+    ],
+    "host": "dev.virtualearth.net",
+    "basePath": "/REST/v1",
+    "paths": {
+        "/Elevation/List": {
+            "get": {
+                "description": "Get elevations for latitude and longitude coordinates",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "points",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "A set of coordinates on the Earth to use in elevation calculations. ",
+                        "example": "35.89431,-110.72522,35.89393,-110.72578,35.89374"
+                    },
+                    {
+                        "name": "heights",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies which sea level model to use to calculate elevation.",
+                        "enum": [
+                            "sealevel",
+                            "ellipsoid"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Elevation/Polyline": {
+            "get": {
+                "description": "Get elevations at equally-spaced locations along a polyline path",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "points",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "A set of coordinates on the Earth to use in elevation calculations. ",
+                        "example": "35.89431,-110.72522,35.89393,-110.72578,35.89374"
+                    },
+                    {
+                        "name": "samples",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the number of equally-spaced elevation values to provide along a polyline path.",
+                        "example": 30,
+                        "maximum": 1024
+                    },
+                    {
+                        "name": "heights",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies which sea level model to use to calculate elevation.",
+                        "enum": [
+                            "sealevel",
+                            "ellipsoid"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Elevation/Bounds": {
+            "get": {
+                "description": "Get elevations at equally-spaced locations within a bounding box",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "bounds",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies the rectangular area over which to provide elevation values.",
+                        "example": "45.219,-122.234,47.61,-122.07"
+                    },
+                    {
+                        "name": "rows",
+                        "required": true,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Two separate parameters which specify the number of rows and columns, respectively, to use to divide the bounding box area into a grid.",
+                        "example": 30
+                    },
+                    {
+                        "name": "cols",
+                        "required": true,
+                        "in": "query",
+                        "type": "integer",
+                        "description": "Two separate parameters which specify the number of rows and columns, respectively, to use to divide the bounding box area into a grid.",
+                        "example": 15
+                    },
+                    {
+                        "name": "heights",
+                        "required": false,
+                        "in": "query",
+                        "type": "string",
+                        "description": "Specifies which sea level model to use to calculate elevation.",
+                        "enum": [
+                            "sealevel",
+                            "ellipsoid"
+                        ]
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        },
+        "/Elevation/SeaLevel": {
+            "get": {
+                "description": "Get the offset of the geoid sea level Earth model from the ellipsoid Earth model",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "BingMapsAPIKey",
+                        "enum": [
+                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                        ]
+                    },
+                    {
+                        "name": "points",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "description": "A set of coordinates on the Earth to use in elevation calculations. ",
+                        "example": "35.89431,-110.72522,35.89393,-110.72578,35.89374"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "One or more Location resources are returned in the response when you make a request by using these URL templates",
+                        "schema": {
+                            "$ref": "#/definitions/Location"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Location": {
+            "type": "object",
+            "properties": {
+                "statusCode": {
+                    "type": "integer"
+                }
+            }
+
+        }
+    }
+}

@@ -36,16 +36,14 @@ This artifact includes:
 ### Command
 Users can run the RestCT tool with the following command:
 ```bash
-python restct.py [--swagger <abs path>][--SStrength <sstrength>][--EStrength <estrength>][--AStrength <astrength>]
-                 [--dir <abs output path>][--budget <seconds>][--patterns <file>]
-                 [--jar <acts>][--header <auth>][--columnId <exp id>]
+python restct.py  RESTCT [-h] --swagger SWAGGER --dir DIR [--SStrength SSTRENGTH] [--EStrength ESTRENGTH] [--AStrength ASTRENGTH] [--budget BUDGET] [--patterns PATTERNS] [--jar JAR] [--header HEADER] [--columnId COLUMNID]
 ```
 #### Console Options
 - `--swagger` indicates the Swagger specification file of the APIs under test
+- `--dir` indicates where the experimental data is stored
 - `--SStrength`(int) is the strength of **operation sequence covering array**, default=2
 - `--EStrength`(int) is the strength of **essential input-parameters covering array**, default=3
 - `--AStrength`(int) is the strength of **all input-parameters covering array**, default=2
-- `--dir` indicates where the experimental data is stored
 - `--budget` specifies maximum amount of time(seconds) allowed for the testing, default=3600(1 hour)
 - `--patterns` provides the patterns used in testing to extract constraints from input-parameters' description
 - `--jar` provides the ACTS jar file used in generating input-parameter covering array
@@ -74,51 +72,39 @@ The directories of this artifcat are organised as follows:
 * 3
 
 
+## Replicating 
+
+In the experiment, RestCT is applied to test APIs of two service systems, GitLab (a local version is deployed as GitLab is an open source project) and Bing Maps (the remote service is used as the subject).
 
 ### Test GitLab (6 APIs)
 
-The Docker environment is required to deploy GitLab. So, please deploy the docker image of specified version at first:
+The Docker environment is required to deploy GitLab. So, please deploy the docker image of specified version `13.10.3-ce.0` at first:
 
 ```bash
 sudo docker run --detach \
-    --hostname gitlab.example.com \
-    --publish 30001:443 --publish 30000:80 --publish 30002:22 \
-    --name gitlab \
-    --restart always \
-    --volume /srv/gitlab/config:/etc/gitlab \
-    --volume /srv/gitlab/logs:/var/log/gitlab \
-    --volume /srv/gitlab/data:/var/opt/gitlab \
-    gitlab/gitlab-ce: 13.10.3-ce.0
+  --hostname gitlab.example.com \
+  --publish 30003:443 --publish 30000:80 --publish 30002:22 \
+  --name gitlab \
+  --restart always \
+  --volume /Users/lixin/Desktop/gitlab-ce/config:/etc/gitlab \
+  --volume /Users/lixin/Desktop/gitlab-ce/logs:/var/log/gitlab \
+  --volume /Users/lixin/Desktop/gitlab-ce/data:/var/opt/gitlab  \
+  --env GITLAB_ROOT_PASSWORD=password1 \
+  gitlab/gitlab-ce: 13.10.3-ce.0
 ```
 To publish a port for container, we use `--publish` flag on the docker run command. The format of the `--publish` command is `[host port]:[container port]`. 
 So if we want the base url of the API to be same as described in the swagger, we have to expose port 80 inside the container to port 30000 outside the container, `--publish 30000:80`.
 
-Next, Authentication Configuration. We use an **OAuth2 token** to authenticate with the API by passing it in the `Authorization` header. 
+Next, Authentication Configuration. We use an **OAuth2 token** to authenticate with the API by passing it in the `Authorization` header. We have set the root password via `--env` in docker run command, 
+then we request an `access_token` with HTTP request
 
-enter in GitLab container already running healthily
-```bash
-sudo docker exec -it gitlab /bin/bash
-```
-log in to GitLab console
-```bash
-gitlab-rails console
-```
-set account and password
-```bash
-user = User.where(id:1).first
-user.password = 'YOUR_PASSWORD'
-user.password_confirmation = 'YOUR_PASSWORD'
-user.save!
-```
-now, we get the administrator account information, then we request an `access_token` with HTTP request
 ```python
-# python
 import requests
 
 account = {
           "grant_type": "password",
-          "username": "admin@example.com",
-          "password": "YOUR_PASSWORD"
+          "username": "admin@example.com", 
+          "password": "password1"
         }
 
 header = {'Content-Type': 'application/json'}
