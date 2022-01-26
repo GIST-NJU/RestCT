@@ -93,7 +93,7 @@ def checkAndPrehandling(settings: Namespace):
         Config.budget = settings.budget
 
     if settings.patterns == "":
-        patterns = curFile.parent.parent / "matchrules.json"
+        patterns = curFile.parent.parent / "lib/matchrules.json"
     else:
         patterns = Path(settings.patterns)
     if patterns.exists() and patterns.is_file():
@@ -102,7 +102,7 @@ def checkAndPrehandling(settings: Namespace):
         raise Exception("patterns are not provided")
 
     if settings.jar == "":
-        jarFile = curFile.parent.parent / "acts_2.93.jar"
+        jarFile = curFile.parent.parent / "lib/acts_2.93.jar"
     else:
         jarFile = Path(settings.jar)
     if jarFile.exists() and jarFile.is_file():

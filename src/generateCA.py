@@ -231,7 +231,7 @@ class CA:
 
             logger.debug("        generate new domains...")
             for i, p in enumerate(paramNames):
-                logger.debug("            {}: {}-{}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
+                logger.debug("            {}: {} - {}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
             try:
                 acts = ACTS(paramNames, domains, operation.constraints, self._eStrength)
             except Exception:
@@ -274,7 +274,7 @@ class CA:
 
             logger.debug("        generate new domains...")
             for i, p in enumerate(paramNames):
-                logger.debug("            {}: {}-{}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
+                logger.debug("            {}: {} - {}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
 
             try:
                 acts = ACTS(paramNames, domains, operation.constraints, self._aStrength)
@@ -453,6 +453,10 @@ class SendRequest:
                 else:
                     raise Exception("unexpected Param Loc Type: {}".format(p.name))
 
+        from src.restct import Config
+        if Config.query is not None and len(Config.query) > 0:
+            params.update(Config.query)
+
         kwargs = dict()
         kwargs["url"] = url
         kwargs["headers"] = headers
@@ -474,8 +478,8 @@ class SendRequest:
     def send(self, **kwargs) -> Tuple[int, Union[str, dict, None]]:
         SendRequest.callNumber += 1
 
-        for k, v in kwargs.items():
-            logger.debug("{}: {}", k, v)
+        # for k, v in kwargs.items():
+        #     logger.debug("{}: {}", k, v)
 
         try:
             feedback = getattr(requests, self._operation.method.value.lower())(**kwargs, timeout=10, auth=Auth())
@@ -489,11 +493,11 @@ class SendRequest:
             feedback = None
 
         if feedback is None:
-            logger.debug("status code: {}", 600)
+            # logger.debug("status code: {}", 600)
             return 600, None
         try:
-            logger.debug("status code: {}", feedback.status_code)
-            logger.debug(feedback.json())
+            # logger.debug("status code: {}", feedback.status_code)
+            # logger.debug(feedback.json())
             return feedback.status_code, feedback.json()
         except json.JSONDecodeError:
             return feedback.status_code, feedback.text
@@ -503,11 +507,8 @@ class Auth:
     def __init__(self):
         from src.restct import Config
         self.headerAuth = Config.header
-        self.queryAuth = Config.query
 
     def __call__(self, r):
         for key, token in self.headerAuth.items():
             r.headers[key] = token
-        for key, token in self.queryAuth.items():
-            r.params[key] = token
         return r

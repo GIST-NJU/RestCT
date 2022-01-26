@@ -6,8 +6,9 @@ from typing import List
 SWAGGER_DIR = ""
 OUTPUT_DIR = ""
 SCRIPTS_DIR = ""
-BING_MAP_AUTH = "{\"key\": \"Am5K5mBbQyBZAkcz9lwRFSavr2XNYgDxWdG2YpQcrOgQqk92tVR8EsnaRGy3-5Ms\"}"
-GITLAB_AUTH = "{\"Authorization\": \"Bearer 298befc034818a461ad31f4a7d4bfe8448bec16c16931fe578c438d145ed503c\"}"
+TOOL_DIR = ""
+BING_MAP_AUTH = ""
+GITLAB_AUTH = ""
 
 EXP_OBJS = {
     "GitLab": {"Branch", "Commit", "Groups", "Issues", "Project", "Repository"},
@@ -18,7 +19,8 @@ SELECTED_OBJS = list()
 
 
 class SUT:
-    def __init__(self, SStrength, EStrength, AStrength, budget, swagger, repeat):
+    def __init__(self, name, SStrength, EStrength, AStrength, budget, swagger, repeat):
+        self.name = name
         self.SStrength = SStrength
         self.EStrength = EStrength
         self.AStrength = AStrength
@@ -55,34 +57,65 @@ class SUT:
 
         sFile = Path(SWAGGER_DIR) / (name + ".json")
 
-        return cls(SStrength, EStrength, AStrength, budget, sFile.as_posix(), repeat)
+        return cls(name, SStrength, EStrength, AStrength, budget, sFile.as_posix(), repeat)
 
     def generateScript(self):
-        scriptFile = Path(SCRIPTS_DIR) / "{0}_{1}_{2}_{3}.sh".format(self.name, self.SStrength, self.EStrength, self.AStrength)
-        mainFile = scriptFile.parent.parent / "src/restct.py"
-        command = mainFile.as_posix()
-        command += " --swagger"
+        scriptFile = Path(SCRIPTS_DIR) / "scripts/{0}_{1}_{2}_{3}.sh".format(self.name, self.SStrength, self.EStrength, self.AStrength)
+        if not scriptFile.parent.exists():
+            scriptFile.parent.mkdir()
+        command = "nohup python " + TOOL_DIR
+        command += " --swagger " + self.swagger
+        command += " --dir " + OUTPUT_DIR
+        command += " --SStrength " + str(self.SStrength)
+        command += " --EStrength " + str(self.EStrength)
+        command += " --AStrength " + str(self.AStrength)
+        command += " --budget " + str(self.budget)
+        if self.name in EXP_OBJS["GitLab"]:
+            assert GITLAB_AUTH != ""
+            command += " --header " + "\"{\\\"Authorization\\\": \\\"Bearer " + GITLAB_AUTH + "\\\"}\""
+        elif self.name in EXP_OBJS["BingMap"]:
+            assert BING_MAP_AUTH != ""
+            command += " --query " + "\"{\\\"key\\\": \\\"" + BING_MAP_AUTH + "\\\"}\""
+        command += " > " + self.name + "_{}_{}_{}.log".format(self.SStrength, self.EStrength, self.AStrength)
+        command += " 2>&1"
         with scriptFile.open("w") as fp:
             fp.write("#!/bin/bash \n\n")
+            fp.write("repeat=1\n")
+            fp.write("while(( $repeat<={} ))\n".format(self.repeat))
+            fp.write("do\n")
+            # fp.write(" " * 4 + "echo " + command + "\n")
+            fp.write(" " * 4 + command + "\n")
+            fp.write(" " * 4 + "let \"repeat++\"\n")
+            fp.write("done\n")
 
 
-
-
-def parseTime(s:str):
-    budget = 0
+def parseTime(s: str):
     if s.endswith("s"):
-        budget = int(s[1:])
+        budget = int(s[:-1])
     elif s.endswith("m"):
-        budget = 60 * int(s[1:])
+        budget = 60 * int(s[:-1])
     elif s.endswith("h"):
-        budget = 3600 * int(s[1:])
+        budget = 3600 * int(s[:-1])
     else:
         raise Exception(s + " can not be parsed")
     return budget
 
 
 def generateScripts():
+    for sut in SELECTED_OBJS:
+        sut = SUT.build(sut)
+        sut.generateScript()
 
+    runScriptFile = Path(SCRIPTS_DIR) / "runAll.sh"
+    with runScriptFile.open("w") as fp:
+        fp.write("#!/bin/bash \n\n")
+        fp.write("for file in {}/scripts/*\n".format(SCRIPTS_DIR))
+        fp.write("do\n")
+        fp.write(" " * 4 + "chmod a+x $file\n")
+        fp.write(" " * 4 + "echo $file\n")
+        fp.write(" " * 4 + "$file\n")
+        fp.write("done\n\n")
+        fp.write("echo 'Done!'")
 
 
 def checkAndPrehandling(settings):
@@ -90,6 +123,9 @@ def checkAndPrehandling(settings):
     global SELECTED_OBJS
     global OUTPUT_DIR
     global SCRIPTS_DIR
+    global TOOL_DIR
+    global GITLAB_AUTH
+    global BING_MAP_AUTH
 
     swaggerDir = Path(settings.swaggerDir)
     if not swaggerDir.exists():
@@ -98,9 +134,9 @@ def checkAndPrehandling(settings):
         raise Exception("swaggerDir must be a folder")
     SWAGGER_DIR = swaggerDir.as_posix()
 
-    objs = [objStr.split("_") for objStr in settings.expObj]
+    objs = [objStr.split("_") for objStr in settings.expObj.split(",")]
     for o in objs:
-        assert len(o) == 5
+        assert len(o) == 6
         if o[0] in EXP_OBJS.keys():
             for item in EXP_OBJS[o[0]]:
                 itemSwagger = swaggerDir / (item + ".json")
@@ -136,6 +172,19 @@ def checkAndPrehandling(settings):
         raise Exception(scriptDir.as_posix() + " must be a folder")
     SCRIPTS_DIR = scriptDir.as_posix()
 
+    toolDir = Path(settings.toolDir)
+    if not toolDir.exists():
+        raise Exception("tool does not exist")
+    if not toolDir.is_file():
+        raise Exception("tool must be a .py file")
+    TOOL_DIR = toolDir.as_posix()
+
+    if settings.gitlabAuth is not None and settings.gitlabAuth != "":
+        GITLAB_AUTH = settings.gitlabAuth
+
+    if settings.bingMapAuth is not None and settings.bingMapAuth != "":
+        BING_MAP_AUTH = settings.bingMapAuth
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -144,7 +193,7 @@ if __name__ == "__main__":
                         help='abs folder of swagger file',
                         type=str, required=True)
     parser.add_argument('--expObj',
-                        help='specify the expObjs, e.g. "gitlab_s2_e3_a2_r1_1h"',
+                        help='specify the expObjs, e.g. "GitLab_s2_e3_a2_r1_1h"',
                         type=str, required=True)
     parser.add_argument('--dir',
                         help='output folder',
@@ -152,6 +201,15 @@ if __name__ == "__main__":
     parser.add_argument('--scriptFolder',
                         help='the folder of generated scripts',
                         type=str, required=True)
+    parser.add_argument('--toolDir',
+                        help='tool file path',
+                        type=str, required=True)
+    parser.add_argument('--gitlabAuth',
+                        help='update oauth token for gitlab',
+                        type=str, required=False, default="")
+    parser.add_argument('--bingMapAuth',
+                        help='update key token for bingmap',
+                        type=str, required=False, default="")
 
     args = parser.parse_args()
 

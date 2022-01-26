@@ -1,179 +1,148 @@
-# Artifact of "Combinatorial Testing of RESTful APIs"
+# RestCT
 
-## Overview
+**RestCT** is a systematic and automatic black-box testing tool for testing RESTful APIs. This tool takes a Swagger specification file (in JSON format) as the input, and adopts Combinatorial Testing (CT) to automatically generate and send HTTP requests to exercise service behaviours.
 
-This paper presents RestCT, a systematic and fully automatic approach that adopts Combinatorial Testing (CT) to test RESTful APIs. 
-RestCT is systematic in that it covers and tests not only the interactions of a certain number of operations in RESTful APIs, 
-but also the interactions of particular input-parameters in every single operation. 
-This is realised by a novel two-phase test case generation approach, 
-which first generates a constrained sequence covering array to determine the execution orders of available operations,
-and then applies an adaptive strategy to generate and refine several constrained covering arrays to concretise input-parameters of each operation. 
-RestCT is also automatic in that its application relies on only a given Swagger specification of RESTful APIs. 
-The creation of CT test models (especially, the inferring of dependency relationships in operation and input-parameter levels), 
-and the generation and execution of test cases are performed without any human intervention. 
+For the implementation details of RestCT, please refer to the following paper:
 
-## Important Files
-This artifact includes:
+> Huayao Wu, Lixin Xu, Xintao Niu, and Changhai Nie. Combinatorial Testing of RESTful APIs. International Conference on Software Engineerng (ICSE), 2022, accepted
 
-- The `src` folder contains source codes that implements RestCT tool, the testing approach proposed in the paper "Combinatorial Testing of RESTful APIs". This tool takes a Swagger specification file as input, and then adopts combinatorial testing to generates concrete HTTP requests to test RESTful APIs described in the specification.
-- The `swagger` folder contains the 11 Swagger specifications are created to test APIs of two real-world service systems, GitLab and Bing Maps. The experimental results reported in the paper are obtained based on these specifications.
-- The `exp` folder contains the experiment scripts we used to obtain the experimental results reported in the paper
-- The `demo_server` folder contains a simple RESTful API system demo. Read the `demo_server/README.md` for more details
 
-## How To Use RESTCT
-### Set Up RESTCT
 
-- Python 3.8.2 and Java 1.8 for your appropriate OS
-- Switch to the repo root directory and install Python dependencies
-    ```bash
-    pip install -r requirements.txt
-    ```
-- Download trained models for [Spacy](https://spacy.io/models/)
-    ```bash
-    python -m spacy download en_core_web_sm
-    ```
+## Usage
+
+### Prerequisite
+
+RestCT requires Python and Java running environemnt (`Python 3.8.2` and `Java 1.8` are used for the development), so please ensure that they are correctly installed and configured in the machine.
+
+Next, run the following command to install Python dependencies (in the root directory of this repo):
+
+```
+pip install -r requirements.txt
+```
+
+As RestCT relies on [Spacy](https://spacy.io) for constaints extraction, run the following command to download the [trained model](https://spacy.io/models/):
+
+```bash
+python -m spacy download en_core_web_sm
+```
+
+
 
 ### Command
+
 Users can run the RestCT tool with the following command:
 ```bash
-python restct.py [-h] --swagger SWAGGER --dir DIR [--SStrength SSTRENGTH] [--EStrength ESTRENGTH] [--AStrength ASTRENGTH] [--budget BUDGET] [--patterns PATTERNS] [--jar JAR] [--header HEADER] [--columnId COLUMNID]
+python src/restct.py --swagger <abs path> --dir <abs output path>
 ```
-#### Console Options
-- `--swagger` indicates the Swagger specification file of the APIs under test
-- `--dir` indicates where the experimental data is stored
-- `--SStrength`(int) is the strength of **operation sequence covering array**, default=2
-- `--EStrength`(int) is the strength of **essential input-parameters covering array**, default=3
-- `--AStrength`(int) is the strength of **all input-parameters covering array**, default=2
-- `--budget` specifies maximum amount of time(seconds) allowed for the testing, default=3600(1 hour)
-- `--patterns` provides the patterns used in testing to extract constraints from input-parameters' description
-- `--jar` provides the ACTS jar file used in generating input-parameter covering array
-- `--head` is needed if the APIs under test ask for authorization. The format is `"{\"key\":\"access_token\"}"`
-- `--columnId` is an id that will be part as a column of the statistics file. it is the same as swagger file name if not provided 
+where
 
-For example, if demo_sever has been deployed successfully, we can test it using the following command:
-```bash
-python restct.py --swagger <parent directory>/RestCT/swagger/Demo/swagger.json --dir <parent directory>/RestCT/output 
-```
-When the testing ends, you should see coverage information and other information in `RestCT/output/statistics.csv`.
+- `--swagger` (required): the Swagger specification file of the APIs under test
+- `--dir` (required): the root directory of testing results produced
 
-## Obtain the Artifact
+The other optional options supported by RestCT include:
 
-The artifact is publicly accessible, which can be downloaded from one of the following websites:
-
-* GitHub repository: https://github.com/GIST-NJU/RestCT (tag: 1.0)
-* Zendo: https://xxxx
-
-For the installation and usage of the RestCT tool, please see `install.md` file. The Swagger specifications are all in JSON format, which can be handled in a simple text editor.
-
-The directories of this artifcat are organised as follows:
-
-* 1
-* 2
-* 3
+- `--SStrength`: coverage strength of sequence covering arrays for operation (integer), default=2
+- `--EStrength`: coverage strength of covering arrays for essential input-parameters (integer), default=3
+- `--AStrength`: coverage strength of covering arrays for all input-parameters (integer), default=2
+- `--budget`: time budget allocated to perform testing (seconds), default=3600 (one hour)
+- `--patterns`: location of the pattern file (used to extract constraints from input-parameters' description), default = `lib/pattern.json`
+- `--jar`: location of the ACTS tool (used to generate covering arrays), default=`lib/acts.jar` 
+- `--head`: if the APIs under test requires authorization, then the API key shuold be specificed using this option. The format is as `"{\"key\":\"access_token\"}"`
+- `--columnId`: is an id that will be part as a column of the statistics file. it is the same as swagger file name if not provided 
 
 
-## Replicating 
 
-In the experiment, RestCT is applied to test APIs of two service systems, GitLab (a local version is deployed as GitLab is an open source project) and Bing Maps (the remote service is used as the subject).
+### Demo
 
-### Test GitLab (6 APIs)
+We provide a simple web service to demonstrate the use of RestCT. The `demo_server/swagger.json` file gives the Swagger specification of this service.
 
-The Docker environment is required to deploy GitLab. So, please deploy the docker image of specified version `13.10.3-ce.0` at first:
+To run this demo, first get into the `demo_server` directory, and start the service:
 
 ```bash
-sudo docker run --detach \
-  --hostname gitlab.example.com \
-  --publish 30003:443 --publish 30000:80 --publish 30002:22 \
-  --name gitlab \
-  --restart always \
-  --volume /Users/lixin/Desktop/gitlab-ce/config:/etc/gitlab \
-  --volume /Users/lixin/Desktop/gitlab-ce/logs:/var/log/gitlab \
-  --volume /Users/lixin/Desktop/gitlab-ce/data:/var/opt/gitlab  \
-  --env GITLAB_ROOT_PASSWORD=password1 \
-  gitlab/gitlab-ce: 13.10.3-ce.0
-```
-To publish a port for container, we use `--publish` flag on the docker run command. The format of the `--publish` command is `[host port]:[container port]`. 
-So if we want the base url of the API to be same as described in the swagger, we have to expose port 80 inside the container to port 30000 outside the container, `--publish 30000:80`.
-
-Next, Authentication Configuration. We use an **OAuth2 token** to authenticate with the API by passing it in the `Authorization` header. We have set the root password via `--env` in docker run command, 
-then we request an `access_token` with HTTP request
-
-```python
-import requests
-
-account = {
-          "grant_type": "password",
-          "username": "admin@example.com", 
-          "password": "password1"
-        }
-
-header = {'Content-Type': 'application/json'}
-
-# the baseurl depends on `[host port]:80` passed to `--publish` flag
-# the default is http://localhost:30000/
-oauth = requests.post('http://localhost:30000/oauth/token', json=account, headers=header)
-
-oauth.json()
-```
-Example response:
-```bash
-{
- "access_token": "de6780bc506a0446309bd9362820ba8aed28aa506c71eedbe1c5c4f9dd350e54",
- "token_type": "bearer",
- "expires_in": 7200,
- "refresh_token": "8257e65c97202ed1726cf9571600918f3bffb2544b26e00a61df9897668c33a1",
- "created_at": 1607635748
-}
-```
-Example of using the `OAuth2 token` in a header
-```bash
-curl --header "Authorization: Bearer OAUTH-TOKEN" "https://gitlab.example.com/api/v4/projects"
+cd demo_server
+# install dependency packages
+pip install -r requirements.txt 
+# run the service
+python src/app.py
 ```
 
-Finally, run the following command to use RestCT to test each subject API of GitLab:
+Next, run the following command to execute RestCT (in the root directory of this repo):
 
 ```bash
-python replicate_gitlab.py [subject] [coverage]
+python src/restct.py --swagger demo_server/swagger.json --dir demo_server/results
 ```
 
-* `subject` indicates the name of the subject API, which can be `branch`, `projects`, ...
-* `coverage` 
+During the testing process, the console will print information like the followings (the testing process will terminate in about one minute):
 
-Once the execution finishes, statistics of the testing results will be printed in the stdout (from which the data reported in the paper can be extracted). An additional data file `[subject].csv` will also be produced.
-
-**Note**: it will take about one hour to test each subject API.
-
-
-
-### Test BingMaps (5 APIs)
-
-We rely on the remote service of Bing Maps to perform testing. So, please register at [Bing Maps Dev Center](https://www.bingmapsportal.com/) and apply an API key at first. The specific steps are:
-- Sign in to the Bing Maps Dev Center with your Microsoft Account.
-- Go to “My Account” and click on “My Keys.”
-- Fill out the form and click “Create” and get your API key details.
-
-Similarly, run the following command to use RestCT to test each subject API of Bing Maps:
-
-```bash
-python replicate_bingmaps.py [subject] [coverage]
+```
+2022-01-25 15:25:55.808 | INFO     | - operations: 6
+2022-01-25 15:25:55.808 | INFO     | - examples found: 2
+2022-01-25 15:25:55.809 | INFO     | - uncovered combinations: 9, sequence length: 6
+2022-01-25 15:25:55.809 | INFO     | - uncovered combinations: 6, sequence length: 6
+2022-01-25 15:25:55.810 | INFO     | - uncovered combinations: 3, sequence length: 6
+2022-01-25 15:25:55.810 | INFO     | - uncovered combinations: 1, sequence length: 5
+2022-01-25 15:25:55.811 | INFO     | - uncovered combinations: 0, sequence length: 3
+2022-01-25 15:25:55.811 | DEBUG    | - 1-th operation: post*http://localhost:8888/api/blog/posts
+2022-01-25 15:25:56.318 | DEBUG    | -         generate new domains...
+2022-01-25 15:25:56.318 | DEBUG    | -             id: 3-{'random', 'default', 'Null'}
+2022-01-25 15:25:56.318 | DEBUG    | -             body: 3-{'random', 'default', 'Null'}
 ```
 
-* `subject` indicates the name of the subject API, which can be ...
-* `coverage` 
-
-Once the execution finishes, statistics of the testing results will be printed in the stdout (from which the data reported in the paper can be extracted). An additional data file `[subject].csv` will also be produced.
-
-**Note**: it will take about one hour to test each subject API.
 
 
+### Test Results
 
-#### Experimental Data
+When the execution of RestCT finishes, the test results can be found in the `demo_server/results` direcotry. These include:
 
-After the testing of each subject API, the stdout will print the following data ():
+*  `statistics.csv`: a file that records primary metrics for evaluation, including:
+  * coverage strengths applied (*SStrength*=2, *EStrength*=3, and *AStrength*=2, by default)
+  * the number of operation sequences generated (*Seq*)
+  * average length of each operation sequence (*Len*)
+  * 1-way and 2-way sequences that are actually tested (*C_1_way* and *C_2_way*), that is, 2xx or 5xx status code is returned
+  * number of all t-way sequences of operations (*All C_SStrength_way*)
+  * number of bugs detected (*Bug*)
+  * number of HTTP requests generated (*Total*)
+  * execution time costs, in seconds (*Cost*) 
+* `swagger`
+  * `acts`: input and ouput files of the ACTS covering array generator
+  * `bug`: detailed information of bugs detected
+  * `log`: stdout obtained during the tool execution
+  * `unresolvedParams.json`: this file records the set of unsolved parameters during the tool execution
 
-* The number of operation sequences generated
-* The average length of all operation sequences
-* ...
+For the above Demo service, RestCT will generate and send around 590 HTTP requests (*Total*). About 50% of operaitons (*C_1_way*), and 17% of 2-way sequence of operations (*C_2_way*) will be acutally tested.
 
-The `subject.csv` file ...
+
+
+## Replication of Experiment
+
+The Swagger specfications of subject APIs, and scripts to replicate the experiments are availabe in the `exp` directory. Please refer to the [README]() file for detailed instructions.
+
+
+
+## Docker Images for Artifact Evaluation
+
+Additional Docker images are provided to simplify the assesment of the RestCT tool. Please refer to the [README_DOCKER]() file for detailed instructions.
+
+
+
+
+
+
+
+* src (python codes)
+
+* lib (restct 运行依赖的内容)
+  * acts_2.93.jar
+  * patterns.json
+
+* demo_server (所有和 demo 相关内容)
+  * swagger.json
+  * ...
+* exp (所有和实验相关的内容)
+  * README.md (介绍复现实验的步骤)
+  * specifications (11 个 subject)
+  * scripts
+  * ...
+* README.md (介绍工具的基本信息，github repo 的默认展示内容）
+* README_DOCKER.md (专门针对 artifact evaluation 的文档，介绍如何基于 docker 使用工具和复现实验)
 
