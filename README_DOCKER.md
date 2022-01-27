@@ -128,16 +128,16 @@ python3.8 /root/RestCT/exp/scripts.py --gitlabAuth <OAUTH-TOKEN>
 #### 1. Experiments of RQ1
 ```bash
 cd /root/RestCT/exp/output/GitLab_RQ1
-bash /root/RestCT/exp/runScripts/GitLab_RQ1/runAll.sh 2>&1 &
+bash /root/RestCT/exp/runScripts/GitLab_RQ1/runAll.sh 
 ```
 
 #### 2. Experiments of RQ2
 ```bash
 cd /root/RestCT/exp/output/GitLab_RQ2
-bash /root/RestCT/exp/runScripts/GitLab_RQ2/runAll.sh 2>&1 &
+bash /root/RestCT/exp/runScripts/GitLab_RQ2/runAll.sh 
 ```
 
-The experiment is not over until the word "Done!" appears in the standard output `./nohup.out`
+The experiment is not over until the word "Done!" appears in the standard output 
 
 **The RestCT tool requests the same GitLab server, so the two groups of experiments must not be parallel**
 
