@@ -2,7 +2,6 @@ import argparse
 from pathlib import Path
 from typing import List
 
-
 SWAGGER_DIR = ""
 OUTPUT_DIR = ""
 SCRIPTS_DIR = ""
@@ -60,9 +59,10 @@ class SUT:
         return cls(name, SStrength, EStrength, AStrength, budget, sFile.as_posix(), repeat)
 
     def generateScript(self):
-        scriptFile = Path(SCRIPTS_DIR) / "scripts/{0}_{1}_{2}_{3}.sh".format(self.name, self.SStrength, self.EStrength, self.AStrength)
+        scriptFile = Path(SCRIPTS_DIR) / "scripts/{0}_{1}_{2}_{3}.sh".format(self.name, self.SStrength, self.EStrength,
+                                                                             self.AStrength)
         if not scriptFile.parent.exists():
-            scriptFile.parent.mkdir()
+            scriptFile.parent.mkdir(parents=True)
         command = "nohup python " + TOOL_DIR
         command += " --swagger " + self.swagger
         command += " --dir " + OUTPUT_DIR
@@ -70,13 +70,15 @@ class SUT:
         command += " --EStrength " + str(self.EStrength)
         command += " --AStrength " + str(self.AStrength)
         command += " --budget " + str(self.budget)
+        command += " --columnId {}_s{}_e{}_a{}_r{}_$repeat".format(self.name, self.SStrength, self.EStrength,
+                                                                   self.AStrength, self.repeat)
         if self.name in EXP_OBJS["GitLab"]:
             assert GITLAB_AUTH != ""
             command += " --header " + "\"{\\\"Authorization\\\": \\\"Bearer " + GITLAB_AUTH + "\\\"}\""
         elif self.name in EXP_OBJS["BingMap"]:
             assert BING_MAP_AUTH != ""
             command += " --query " + "\"{\\\"key\\\": \\\"" + BING_MAP_AUTH + "\\\"}\""
-        command += " > " + self.name + "_{}_{}_{}.log".format(self.SStrength, self.EStrength, self.AStrength)
+        command += " > " + self.name + "_{}_{}_{}_$repeat.log".format(self.SStrength, self.EStrength, self.AStrength)
         command += " 2>&1"
         with scriptFile.open("w") as fp:
             fp.write("#!/bin/bash \n\n")
@@ -118,6 +120,51 @@ def generateScripts():
         fp.write("echo 'Done!'")
 
 
+def RQ1():
+    global SCRIPTS_DIR
+    global OUTPUT_DIR
+
+    SELECTED_OBJS.clear()
+
+    if GITLAB_AUTH != "":
+        SELECTED_OBJS.extend([(name, "s2", "e3", "a2", "r5", "1h") for name in EXP_OBJS["GitLab"]])
+        SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/GitLab_RQ1").as_posix()
+        OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/GitLab_RQ1").as_posix()
+
+    elif BING_MAP_AUTH != "":
+        SELECTED_OBJS.extend([(name, "s2", "e3", "a2", "r5", "1h") for name in EXP_OBJS["BingMap"]])
+        SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/BingMap_RQ1").as_posix()
+        OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/BingMap_RQ1").as_posix()
+    else:
+        pass
+
+    Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+
+
+def RQ2():
+    global SCRIPTS_DIR
+    global OUTPUT_DIR
+
+    SELECTED_OBJS.clear()
+
+    for s, e, a in [(1, 3, 2), (3, 3, 2), (2, 2, 2), (2, 4, 2), (2, 3, 1), (2, 3, 3)]:
+        if GITLAB_AUTH != "":
+            SELECTED_OBJS.extend(
+                [(name, "s" + str(s), "e" + str(e), "a" + str(a), "r5", "5h") for name in EXP_OBJS["GitLab"]])
+            SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/GitLab_RQ2").as_posix()
+            OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/GitLab_RQ2").as_posix()
+
+        elif BING_MAP_AUTH != "":
+            SELECTED_OBJS.extend(
+                [(name, "s" + str(s), "e" + str(e), "a" + str(a), "r5", "1h") for name in EXP_OBJS["BingMap"]])
+            SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/BingMap_RQ2").as_posix()
+            OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/BingMap_RQ2").as_posix()
+        else:
+            pass
+
+    Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+
+
 def checkAndPrehandling(settings):
     global SWAGGER_DIR
     global SELECTED_OBJS
@@ -127,52 +174,72 @@ def checkAndPrehandling(settings):
     global GITLAB_AUTH
     global BING_MAP_AUTH
 
-    swaggerDir = Path(settings.swaggerDir)
+    curFile = Path(__file__)
+
+    if settings.swaggerDir is not None and settings.swaggerDir != "":
+        swaggerDir = Path(settings.swaggerDir)
+    else:
+        if settings.gitlabAuth is not None and settings.gitlabAuth != "":
+            swaggerDir = curFile.parent / "swagger/GitLab"
+        elif settings.bingMapAuth is not None and settings.bingMapAuth != "":
+            swaggerDir = curFile.parent / "swagger/BingMap"
+        else:
+            raise Exception("specify --gitlabAuth or --bingMapAuth")
     if not swaggerDir.exists():
         raise Exception("the folder of swagger docs does not exists")
     if not swaggerDir.is_dir():
         raise Exception("swaggerDir must be a folder")
     SWAGGER_DIR = swaggerDir.as_posix()
 
-    objs = [objStr.split("_") for objStr in settings.expObj.split(",")]
-    for o in objs:
-        assert len(o) == 6
-        if o[0] in EXP_OBJS.keys():
-            for item in EXP_OBJS[o[0]]:
-                itemSwagger = swaggerDir / (item + ".json")
-                if not itemSwagger.exists():
-                    raise Exception(item + " swagger doc does not exist")
-                newList = [item]
-                newList.extend(o[1:])
-                SELECTED_OBJS.append(newList)
-        elif o[0] in EXP_OBJS["GitLab"]:
-            sFile = swaggerDir / (o[0] + ".json")
-            if not sFile.exists():
-                raise Exception(o[0] + " swagger doc dox")
-            SELECTED_OBJS.append(o)
-        elif o[0] in EXP_OBJS["BingMap"]:
-            sFile = swaggerDir / (o[0] + ".json")
-            if not sFile.exists():
-                raise Exception(o[0] + " swagger doc dox")
-            SELECTED_OBJS.append(o)
-        else:
-            raise Exception(o[0] + " is not a obj")
+    if settings.expObj is not None and settings.expObj != "":
+        objs = [objStr.split("_") for objStr in settings.expObj.split(",")]
+        for o in objs:
+            assert len(o) == 6
+            if o[0] in EXP_OBJS.keys():
+                for item in EXP_OBJS[o[0]]:
+                    itemSwagger = swaggerDir / (item + ".json")
+                    if not itemSwagger.exists():
+                        raise Exception(item + " swagger doc does not exist")
+                    newList = [item]
+                    newList.extend(o[1:])
+                    SELECTED_OBJS.append(newList)
+            elif o[0] in EXP_OBJS["GitLab"]:
+                sFile = swaggerDir / (o[0] + ".json")
+                if not sFile.exists():
+                    raise Exception(o[0] + " swagger doc dox")
+                SELECTED_OBJS.append(o)
+            elif o[0] in EXP_OBJS["BingMap"]:
+                sFile = swaggerDir / (o[0] + ".json")
+                if not sFile.exists():
+                    raise Exception(o[0] + " swagger doc dox")
+                SELECTED_OBJS.append(o)
+            else:
+                raise Exception(o[0] + " is not a obj")
 
-    output = Path(settings.dir)
+    if settings.dir is None or settings.dir == "":
+        output = curFile.parent / "output"
+    else:
+        output = Path(settings.dir)
     if not output.exists():
         output.mkdir(parents=True)
     elif output.is_file():
         raise Exception(output.as_posix() + " must be a folder")
     OUTPUT_DIR = output.as_posix()
 
-    scriptDir = Path(settings.scriptFolder)
+    if settings.scriptFolder is None or settings.dir == "":
+        scriptDir = curFile.parent / "runScripts"
+    else:
+        scriptDir = Path(settings.scriptFolder)
     if not scriptDir.exists():
         scriptDir.mkdir(parents=True)
     elif scriptDir.is_file():
         raise Exception(scriptDir.as_posix() + " must be a folder")
     SCRIPTS_DIR = scriptDir.as_posix()
 
-    toolDir = Path(settings.toolDir)
+    if settings.toolDir is None or settings.toolDir == "":
+        toolDir = curFile.parent.parent / "src/restct.py"
+    else:
+        toolDir = Path(settings.toolDir)
     if not toolDir.exists():
         raise Exception("tool does not exist")
     if not toolDir.is_file():
@@ -191,19 +258,19 @@ if __name__ == "__main__":
 
     parser.add_argument('--swaggerDir',
                         help='abs folder of swagger file',
-                        type=str, required=True)
+                        type=str, required=False, default="")
     parser.add_argument('--expObj',
                         help='specify the expObjs, e.g. "GitLab_s2_e3_a2_r1_1h"',
-                        type=str, required=True)
+                        type=str, required=False, default="")
     parser.add_argument('--dir',
                         help='output folder',
-                        type=str, required=True)
+                        type=str, required=False, default="")
     parser.add_argument('--scriptFolder',
                         help='the folder of generated scripts',
-                        type=str, required=True)
+                        type=str, required=False, default="")
     parser.add_argument('--toolDir',
                         help='tool file path',
-                        type=str, required=True)
+                        type=str, required=False, default="")
     parser.add_argument('--gitlabAuth',
                         help='update oauth token for gitlab',
                         type=str, required=False, default="")
@@ -215,4 +282,10 @@ if __name__ == "__main__":
 
     checkAndPrehandling(args)
 
-    generateScripts()
+    if len(SELECTED_OBJS):
+        generateScripts()
+    else:
+        RQ1()
+        generateScripts()
+        RQ2()
+        generateScripts()
