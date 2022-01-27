@@ -115,13 +115,13 @@ For the above Demo service, RestCT will generate and send around 590 HTTP reques
 
 ## Replication of Experiment
 
-The Swagger specfications of subject APIs, and scripts to replicate the experiments are availabe in the `exp` directory. Please refer to the [README]() file for detailed instructions.
+The Swagger specfications of subject APIs, and scripts to replicate the experiments are availabe in the `exp` directory. Please refer to the [README](/exp/README.md) file for detailed instructions.
 
 
 
 ## Docker Images for Artifact Evaluation
 
-Additional Docker images are provided to simplify the assesment of the RestCT tool. Please refer to the [README_DOCKER]() file for detailed instructions.
+Additional Docker images are provided to simplify the assesment of the RestCT tool. Please refer to the [README_DOCKER](./README_DOCKER.md) file for detailed instructions.
 
 
 

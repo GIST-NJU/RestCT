@@ -87,7 +87,7 @@ The experiment is not over until the word "Done!" appears in the standard output
 **For RQ1, we commended to use subject `branch`, `commit`,`groups`, or `repository` as a quick assessemnt (about 2~6 minutes for each to execute), because the other two subjects might take about 30 minutes to execute**. 
 For example, run the following command to test subject `branch`:
 ```bash
-bash /root/RestCT/exp/runScripts/GitLab_RQ1/scripts/Branch_2_3_2.sh 2>&1
+bash /root/RestCT/exp/runScripts/GitLab_RQ1/scripts/Branch_2_3_2.sh
 ```
 The experiment will end in a few minutes
 
@@ -143,7 +143,7 @@ The experiment is not over until the word "Done!" appears in the standard output
 
 ## Experimental Data
 
-When the execution of RestCT finishes, the test results can be found in the `xxx` direcotry. These include:
+When the execution of RestCT finishes, the test results can be found in the `/root/RestCT/exp/output/GitLab[BingMap]_RQ1[RQ2]` direcotry. These include:
 
 * `statistics.csv`: this file records primary metrics for evaluation (tht is, the numbers reported in the paper), including:
   * coverage strengths applied (*SStrength*=2, *EStrength*=3, and *AStrength*=2, by default)

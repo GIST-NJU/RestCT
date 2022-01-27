@@ -63,7 +63,7 @@ class SUT:
                                                                              self.AStrength)
         if not scriptFile.parent.exists():
             scriptFile.parent.mkdir(parents=True)
-        command = "nohup python " + TOOL_DIR
+        command = "nohup python3.8 " + TOOL_DIR
         command += " --swagger " + self.swagger
         command += " --dir " + OUTPUT_DIR
         command += " --SStrength " + str(self.SStrength)
@@ -127,12 +127,12 @@ def RQ1():
     SELECTED_OBJS.clear()
 
     if GITLAB_AUTH != "":
-        SELECTED_OBJS.extend([(name, "s2", "e3", "a2", "r5", "1h") for name in EXP_OBJS["GitLab"]])
+        SELECTED_OBJS.extend([(name, "s2", "e3", "a2", "r1", "1h") for name in EXP_OBJS["GitLab"]])
         SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/GitLab_RQ1").as_posix()
         OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/GitLab_RQ1").as_posix()
 
     elif BING_MAP_AUTH != "":
-        SELECTED_OBJS.extend([(name, "s2", "e3", "a2", "r5", "1h") for name in EXP_OBJS["BingMap"]])
+        SELECTED_OBJS.extend([(name, "s2", "e3", "a2", "r1", "1h") for name in EXP_OBJS["BingMap"]])
         SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/BingMap_RQ1").as_posix()
         OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/BingMap_RQ1").as_posix()
     else:
@@ -150,13 +150,13 @@ def RQ2():
     for s, e, a in [(1, 3, 2), (3, 3, 2), (2, 2, 2), (2, 4, 2), (2, 3, 1), (2, 3, 3)]:
         if GITLAB_AUTH != "":
             SELECTED_OBJS.extend(
-                [(name, "s" + str(s), "e" + str(e), "a" + str(a), "r5", "5h") for name in EXP_OBJS["GitLab"]])
+                [(name, "s" + str(s), "e" + str(e), "a" + str(a), "r1", "5h") for name in EXP_OBJS["GitLab"]])
             SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/GitLab_RQ2").as_posix()
             OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/GitLab_RQ2").as_posix()
 
         elif BING_MAP_AUTH != "":
             SELECTED_OBJS.extend(
-                [(name, "s" + str(s), "e" + str(e), "a" + str(a), "r5", "1h") for name in EXP_OBJS["BingMap"]])
+                [(name, "s" + str(s), "e" + str(e), "a" + str(a), "r1", "5h") for name in EXP_OBJS["BingMap"]])
             SCRIPTS_DIR = (Path(SWAGGER_DIR).parent.parent / "runScripts/BingMap_RQ2").as_posix()
             OUTPUT_DIR = (Path(SWAGGER_DIR).parent.parent / "output/BingMap_RQ2").as_posix()
         else:
