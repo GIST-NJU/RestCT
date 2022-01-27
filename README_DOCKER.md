@@ -7,7 +7,7 @@ We provide Docker images to simply the assesment of the RestCT tool. In this cas
 ## Setup
 docker pull restct and enter it
 ```bash
-docker run --network host -i -t lxxu/restct:1.0 /bin/bash
+docker run --network host -i -t lxxu/restct:latest /bin/bash
 ```
 
 
