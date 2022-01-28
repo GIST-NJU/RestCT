@@ -133,6 +133,9 @@ git
 .DS_Store
 .idea/
 .vscode/
-*.spec
 output/
 runScripts/
+exp/output/
+exp/runScripts/
+exp/**/output/
+exp/**/runScripts/

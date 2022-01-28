@@ -164,15 +164,15 @@ bash /root/RestCT/exp/runScripts/BingMap_RQ1/runAll.sh
 
 **It will take about one hour to test all APIs of GitLab, and three hours to test all APIs of Bing Maps**.
 
-For a quick assessemnt, we recommend to run the experimets on the APIs of **Branch** (for GitLab) and **Elevations** (for Bing Maps), which will take several minutes only to execute (scripts to test each single subject API can be found in the `scripts` directory):
+For a quick assessment, we recommend running the experiments on the APIs of **Branch** (for GitLab) and **Elevations** (for Bing Maps), which will take several minutes only to execute (scripts to test each single subject API can be found in the `scripts` directory):
 
 ```bash
 # test Branch (GitLab)
 cd /root/RestCT/exp/output/GitLab_RQ1
-bash /root/RestCT/exp/runScripts/GitLab_RQ1/scripts/Branch_2_3_2.sh 2>&1
+bash /root/RestCT/exp/runScripts/GitLab_RQ1/scripts/Branch_2_3_2.sh
 # test Elevations (Bing Maps)
 cd /root/RestCT/exp/output/BingMap_RQ1
-bash /root/RestCT/exp/runScripts/BingMap_RQ1/scripts/Elevations_2_3_2.sh 2>&1
+bash /root/RestCT/exp/runScripts/BingMap_RQ1/scripts/Elevations_2_3_2.sh
 ```
 
 Once the test execution finishes, statistics of test results can be found in the `statistics.csv` file:
@@ -203,10 +203,10 @@ Alternatively, for a quick assessment of the performance of RestCT under a speci
 ```bash
 # test Branch (GitLab)
 cd /root/RestCT/exp/output/GitLab_RQ2
-bash /root/RestCT/exp/runScripts/GitLab_RQ2/scripts/Branch_[ss]_[es]_[as].sh 2>&1
+bash /root/RestCT/exp/runScripts/GitLab_RQ2/scripts/Branch_[ss]_[es]_[as].sh
 # test Elevations (Bing Maps)
 cd /root/RestCT/exp/output/BingMap_RQ2
-bash /root/RestCT/exp/runScripts/BingMap_RQ1/scripts/Elevations_[ss]_[es]_[as].sh 2>&1
+bash /root/RestCT/exp/runScripts/BingMap_RQ2/scripts/Elevations_[ss]_[es]_[as].sh
 ```
 
 Here, `[ss]`, `[es]`, and `[as]` indicate the coverage strengths applied for operation sequences, essentiall input-parameters, and all input-parameters, respectively. All possible choices include `1_3_2`, `3_3_2`, `2_2_2`, `2_4_2`, `2_3_1`, `2_3_3` (a high coverage strength typically indicates a high test execution cost).
