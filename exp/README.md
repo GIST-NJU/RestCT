@@ -1,6 +1,6 @@
 # Replication of Experiments
 
-The performance of RestCT is evaluated under 11 real-world subject APIs of two servcie systems, *GitLab* and *Bing Maps* (their Swagger specifications are available in the `swagger` directory). This document provides instructions for replicating the above experiments in a Linux platform.
+The performance of RestCT is evaluated under 11 real-world subject APIs of two service systems, *GitLab* and *Bing Maps* (their Swagger specifications are available in the `swagger` directory). This document provides instructions for replicating the above experiments in a Linux platform.
 
 For the instructions that use Docker images to replicate the experiments, please see [README_DOCKER](https://github.com/GIST-NJU/RestCT/blob/main/README_DOCKER.md).
 
@@ -10,7 +10,7 @@ For the instructions that use Docker images to replicate the experiments, please
 
 ### 1. GitLab
 
-We rely on Docker to deploy GitLab in the local environemnt. Run the following command to download and start a GitLab container (this initialization process may take several minutes, please wait until the status of the container becomes *healthy*):
+We rely on Docker to deploy GitLab in the local environment. Run the following command to download and start a GitLab container (this initialization process may take several minutes, please wait until the status of the container becomes *healthy*):
 
 ```bash
 sudo docker run --detach \
@@ -59,7 +59,7 @@ However, the authentication is also required. To this end, please register an ac
 - Sign in to the Bing Maps Dev Center with your account.
 - Go to “My Account” and click on “My Keys.”
 - Fill out the form and click on the “Create” button (leave Key Type and Application Type as their default values)
-- In the "Key details" section, click on the  "Show Key"  link to get the token.
+- In the "Key details" section, click on the "Show Key" link to get the token.
 
 
 
@@ -142,7 +142,7 @@ cd $RESTCT_HOME/exp/output/BingMap_RQ2
 bash $RESTCT_HOME/exp/runScripts/BingMap_RQ2/scripts/Elevations_[ss]_[es]_[as].sh 
 ```
 
-Here, `[ss]`, `[es]`, and `[as]` indicate the coverage strengths applied for operation sequences, essentiall input-parameters, and all input-parameters, respectively. All possible choices include `1_3_2`, `3_3_2`, `2_2_2`, `2_4_2`, `2_3_1`, `2_3_3` (a high coverage strength typically indicates a high test execution cost).
+Here, `[ss]`, `[es]`, and `[as]` indicate the coverage strengths applied for operation sequences, essential input-parameters, and all input-parameters, respectively. All possible choices include `1_3_2`, `3_3_2`, `2_2_2`, `2_4_2`, `2_3_1`, `2_3_3` (a high coverage strength typically indicates a high test execution cost).
 
 **Note**: Do not run the experiment scripts (for either RQ1 or RQ2) in parallel to avoid affecting the experimental results.
 
@@ -150,7 +150,7 @@ Here, `[ss]`, `[es]`, and `[as]` indicate the coverage strengths applied for ope
 
 ## Experimental Results
 
-When the executions of the above scripts finish, the test results can be found in the `exp/output` direcotry. For each test execution, the results reporeted include:
+When the executions of the above scripts finish, the test results can be found in the `exp/output` directory. For each test execution, the results reported include:
 
 * `statistics.csv`: this file records primary metrics for evaluation (that is, the numbers reported in the paper), including:
    * coverage strengths applied (*SStrength*=2, *EStrength*=3, and *AStrength*=2, by default)
@@ -162,12 +162,12 @@ When the executions of the above scripts finish, the test results can be found i
    * number of HTTP requests generated (*Total*)
    * execution time costs, in seconds (*Cost*) 
 * `swagger`: additional logging files, including:
-   * `acts`: input and ouput files of the ACTS covering array generator
+   * `acts`: input and output files of the ACTS covering array generator
    * `bug`: detailed information of bugs detected
    * `log`: stdout obtained during the tool execution
    * `unresolvedParams.json`: the set of unsolved parameters during the testing process
 
 
 
-We note that we cannot guarantee a 100% accurate replication of our experiments. As also pointed out by [other studies](https://github.com/EMResearch/EvoMaster/blob/master/docs/replicating_studies.md), the approaches of testing RESTful APIs typically suffer from non-determinism, because they need deal with the networking, and the algorithms usually involve some levels of randomness. In addition, some subject APIs are remotely deployed web services, and they could be updated unpredictably. Hence, after running the above scripts, experimental results that are different from those reported in the paper might be observed (especially, when the testing process is only repeated one or two times). Nevertheless, the average results should be similar in most of the times.
+We note that we cannot guarantee a 100% accurate replication of our experiments. As also pointed out by [other studies](https://github.com/EMResearch/EvoMaster/blob/master/docs/replicating_studies.md), the approaches of testing RESTful APIs typically suffer from non-determinism, because they need deal with the networking, and the algorithms usually involve some levels of randomness. In addition, some subject APIs are remotely deployed web services, and they could be updated unpredictably. Hence, after running the above scripts, experimental results that are different from those reported in the paper might be observed (especially, when the testing process is only repeated one or two times). Nevertheless, the average results should be similar in most of the time.
 
