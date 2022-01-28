@@ -106,20 +106,7 @@ class RESTCT:
             sequence = sca.buildSequence()
             logger.info("uncovered combinations: {}, sequence length: {}".format(len(sca.uncoveredSet), len(sequence)))
 
-        # seqList = sorted(SCA.members, key=lambda item: len(item))
-        sortedMembers = Path("/root/py_relicating/commitMembers.txt")
-        # sortedOperations = Path("/root/py_relicating/commitOperations.txt")
-        import pickle
-        # with sortedMembers.open("wb") as fp:
-        #     pickle.dump(seqList, fp)
-        # with sortedOperations.open("wb") as fp:
-        #     pickle.dump([[op.method.value + "*" + op.url for op in seq] for seq in seqList], fp)
-
-        # with sortedMembers.open("rb") as fp:
-        #     seqList = pickle.load(fp)
-
         for sequence in sorted(SCA.members, key=lambda item: len(item)):
-        # for sequence in seqList:
             ca = CA(sequence)
             flag = ca.main(RESTCT.budget - (time.time() - startTime))
             if not flag:
