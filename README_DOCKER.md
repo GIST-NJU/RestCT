@@ -2,7 +2,7 @@
 
 We provide a Docker image, `restct`, to simply the assessment of the RestCT tool. In this case, users can skip environment settings to run the RestCT tool, and also replicate the experiments reported in the paper.
 
-A copy of this image is also archived at DOI [xxxx]().
+A copy of this image is also archived at DOI [10.5281/zenodo.5909761](https://doi.org/10.5281/zenodo.5909761).
 
 
 

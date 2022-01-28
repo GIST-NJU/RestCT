@@ -124,7 +124,7 @@ The Swagger specifications of subject APIs, and scripts to replicate the experim
 
 
 
-## Docker Images for Artifact Evaluation
+## Docker Image for Artifact Evaluation
 
 Additional Docker images are provided to simplify the assessment of the artifact. Please refer to the [README_DOCKER](https://github.com/GIST-NJU/RestCT/blob/main/README_DOCKER.md) file for detailed instructions.
 
