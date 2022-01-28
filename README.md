@@ -10,17 +10,17 @@ For the implementation details of RestCT, please refer to the following paper:
 
 ## Usage
 
-### Prerequisite
+### Setup
 
-RestCT requires Python and Java running environemnt (`Python 3.8.2` and `Java 1.8` are used for the development), so please ensure that they are correctly installed and configured in the machine.
+RestCT requires Python and Java running environemnt (`Python 3.8.2` and `Java 1.8` are used for the development), so please ensure that they are correctly installed and configured.
 
-Next, run the following command to install Python dependencies (in the root directory of this repo):
+Next, run the following command to install dependency packages (in the root directory of this repo):
 
 ```
 pip install -r requirements.txt
 ```
 
-As RestCT relies on [Spacy](https://spacy.io) for constaints extraction, run the following command to download the [trained model](https://spacy.io/models/):
+RestCT relies on [Spacy](https://spacy.io), a libraby of natural language processing, for constaints extraction. Run the following command to download the [trained model](https://spacy.io/models/):
 
 ```bash
 python -m spacy download en_core_web_sm
@@ -32,23 +32,22 @@ python -m spacy download en_core_web_sm
 
 Users can run the RestCT tool with the following command:
 ```bash
-python src/restct.py --swagger <abs path> --dir <abs output path>
+python src/restct.py --swagger <path of spec file> --dir <path of output dir>
 ```
-where
+The two mandatory options are:
 
-- `--swagger` (required): the Swagger specification file of the APIs under test
-- `--dir` (required): the root directory of testing results produced
+- `--swagger`: the Swagger specification file of the APIs under test
+- `--dir`: the output directory of test results
 
-The other optional options supported by RestCT include:
+The other optional options include:
 
-- `--SStrength`: coverage strength of sequence covering arrays for operation (integer), default=2
-- `--EStrength`: coverage strength of covering arrays for essential input-parameters (integer), default=3
-- `--AStrength`: coverage strength of covering arrays for all input-parameters (integer), default=2
+- `--SStrength`: coverage strength of sequence covering arrays for operatio sequences (Integer), default=2
+- `--EStrength`: coverage strength of covering arrays for essential input-parameters (Integer), default=3
+- `--AStrength`: coverage strength of covering arrays for all input-parameters (Integer), default=2
 - `--budget`: time budget allocated to perform testing (seconds), default=3600 (one hour)
-- `--patterns`: location of the pattern file (used to extract constraints from input-parameters' description), default = `lib/pattern.json`
-- `--jar`: location of the ACTS tool (used to generate covering arrays), default=`lib/acts.jar` 
-- `--head`: if the APIs under test requires authorization, then the API key shuold be specificed using this option. The format is as `"{\"key\":\"access_token\"}"`
-- `--columnId`: is an id that will be part as a column of the statistics file. it is the same as swagger file name if not provided 
+- `--patterns`: location of the pattern file (used to extract constraints from input-parameters' description), default = `lib/matchrules.json`
+- `--jar`: location of the ACTS tool (used to generate covering arrays), default=`lib/acts_2.93.jar` 
+- `--head`: if the APIs under test requires authorization, then the API key shuold be specificed using this option. The format is as `"{\"key\":\"access_token\"}"`.
 
 
 
@@ -62,8 +61,8 @@ To run this demo, first get into the `demo_server` directory, and start the serv
 cd demo_server
 # install dependency packages
 pip install -r requirements.txt 
-# run the service
-python src/app.py
+# start the service
+python demo_server/app.py
 ```
 
 Next, run the following command to execute RestCT (in the root directory of this repo):
@@ -72,7 +71,7 @@ Next, run the following command to execute RestCT (in the root directory of this
 python src/restct.py --swagger demo_server/swagger.json --dir demo_server/results
 ```
 
-During the testing process, the console will print information like the followings (the testing process will terminate in about one minute):
+The testing process is expected to terminate in about one minute. During this process, the console will print information like the followings:
 
 ```
 2022-01-25 15:25:55.808 | INFO     | - operations: 6
@@ -88,61 +87,44 @@ During the testing process, the console will print information like the followin
 2022-01-25 15:25:56.318 | DEBUG    | -             body: 3-{'random', 'default', 'Null'}
 ```
 
+Once the execution finishes, the test results are saved in the `demo_server/results` direcotry. The `statistics.csv` file gives the primary metrics for evaluation:
+
+```bash
+cat demo_server/results/statistics.csv
+```
+
+In this case, RestCT is expected to generate and send around 500+ HTTP requests (*Total*). About 50% of operaitons (*C_1_way*), and 17% of 2-way sequence of operations (*C_2_way*) can be acutally tested.
+
 
 
 ### Test Results
 
-When the execution of RestCT finishes, the test results can be found in the `demo_server/results` direcotry. These include:
+When the execution of RestCT finishes, the test results can be found in the direcotry specificed by the `--dir` option. These include:
 
-*  `statistics.csv`: a file that records primary metrics for evaluation, including:
+* `statistics.csv`: this file records primary metrics for evaluation, including:
   * coverage strengths applied (*SStrength*=2, *EStrength*=3, and *AStrength*=2, by default)
   * the number of operation sequences generated (*Seq*)
   * average length of each operation sequence (*Len*)
-  * 1-way and 2-way sequences that are actually tested (*C_1_way* and *C_2_way*), that is, 2xx or 5xx status code is returned
+  * 1-way and 2-way sequences that are actually tested (*C_1_way* and *C_2_way*), that is, 2xx or 5xx status code is returned for every operation
   * number of all t-way sequences of operations (*All C_SStrength_way*)
   * number of bugs detected (*Bug*)
   * number of HTTP requests generated (*Total*)
   * execution time costs, in seconds (*Cost*) 
-* `swagger`
+* `swagger`: additional logging files, including:
   * `acts`: input and ouput files of the ACTS covering array generator
   * `bug`: detailed information of bugs detected
   * `log`: stdout obtained during the tool execution
-  * `unresolvedParams.json`: this file records the set of unsolved parameters during the tool execution
-
-For the above Demo service, RestCT will generate and send around 590 HTTP requests (*Total*). About 50% of operaitons (*C_1_way*), and 17% of 2-way sequence of operations (*C_2_way*) will be acutally tested.
+  * `unresolvedParams.json`: the set of unsolved parameters during the testing process
 
 
 
 ## Replication of Experiment
 
-The Swagger specfications of subject APIs, and scripts to replicate the experiments are availabe in the `exp` directory. Please refer to the [README](/exp/README.md) file for detailed instructions.
+The Swagger specfications of subject APIs, and scripts to replicate the experiments are availabe in the `exp` directory. Please refer to the [README](https://github.com/GIST-NJU/RestCT/blob/main/exp/README.md) file for detailed instructions.
 
 
 
 ## Docker Images for Artifact Evaluation
 
-Additional Docker images are provided to simplify the assesment of the RestCT tool. Please refer to the [README_DOCKER](./README_DOCKER.md) file for detailed instructions.
-
-
-
-
-
-
-
-* src (python codes)
-
-* lib (restct 运行依赖的内容)
-  * acts_2.93.jar
-  * patterns.json
-
-* demo_server (所有和 demo 相关内容)
-  * swagger.json
-  * ...
-* exp (所有和实验相关的内容)
-  * README.md (介绍复现实验的步骤)
-  * specifications (11 个 subject)
-  * scripts
-  * ...
-* README.md (介绍工具的基本信息，github repo 的默认展示内容）
-* README_DOCKER.md (专门针对 artifact evaluation 的文档，介绍如何基于 docker 使用工具和复现实验)
+Additional Docker images are provided to simplify the assesment of the artifact. Please refer to the [README_DOCKER](https://github.com/GIST-NJU/RestCT/blob/main/README_DOCKER.md) file for detailed instructions.
 

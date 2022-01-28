@@ -1,33 +1,45 @@
-# Docker Images for Artifact Evaluation
+# Docker Image for Artifact Evaluation
 
-We provide Docker images to simply the assesment of the RestCT tool. In this case, users can skip all prerequisite steps to run the RestCT tool, and also replicate the experiments reported in the paper.
+We provide a Docker image, `restct`, to simply the assesment of the RestCT tool. In this case, users can skip environment settings to run the RestCT tool, and also replicate the experiments reported in the paper.
+
+A copy of this image is also available on [Zenodo]().
+
 
 
 
 ## Setup
-docker pull restct and enter it
+
+Pull the `restct`  image and start the container:
+
 ```bash
+docker pull lxxu/restct:latest
 docker run --network host -i -t lxxu/restct:latest /bin/bash
 ```
 
+The source codes of the RestCT repository (https://github.com/GIST-NJU/RestCT) can be found in `\root\RestCT`.
+
+
 
 ## Use RestCT to Test a Demo Service
-To run this demo, first get into the `demo_server` directory, and start the service:
+
+**The commands in this section should be executed inside the `restct` contaier**.
+
+First, get into the `demo_server` directory, and start the [demo service](https://github.com/microsoft/restler-fuzzer/tree/main/demo_server) (this service comes from the [restler-fuzzer](https://github.com/microsoft/restler-fuzzer) project):
 
 ```bash
-cd /root/RestCT/demo_server/demo_server
-
-# run the service
-nohup python3.8 src/app.py 2>&1 &
+cd /root/RestCT/demo_server
+nohup python3.8 demo_server/app.py 2>&1 &
 ```
 
-Next, run the following command to execute RestCT:
+Next, run the following command to apply RestCT to test the service:
 
 ```bash
 python3.8 /root/RestCT/src/restct.py --swagger /root/RestCT/demo_server/swagger.json --dir /root/RestCT/demo_server/results
 ```
 
-During the testing process, the console will print information like the followings (the testing process will terminate in about one minute):
+Here, `--swagger` indicates the Swagger specification file of the APIs under test, and `--dir` indicates the output directory of test results. Please refer to the [README](https://github.com/GIST-NJU/RestCT/blob/main/README.md) file for more available options. 
+
+The testing process is expected to terminate in about one minute. During this process, the console will print information like the followings:
 
 ```
 2022-01-25 15:25:55.808 | INFO     | - operations: 6
@@ -43,44 +55,32 @@ During the testing process, the console will print information like the followin
 2022-01-25 15:25:56.318 | DEBUG    | -             body: 3-{'random', 'default', 'Null'}
 ```
 
-### Test Results
+Once the execution finishes, the test results are saved in the `demo_server/results` direcotry. The `statistics.csv` file gives the primary metrics for evaluation:
 
-When the execution of RestCT finishes, the test results can be found in the `demo_server/results` direcotry. These include:
+```bash
+cat /root/RestCT/demo_server/results/statistics.csv
+```
 
-*  `statistics.csv`: a file that records primary metrics for evaluation, including:
-  * coverage strengths applied (*SStrength*=2, *EStrength*=3, and *AStrength*=2, by default)
-  * the number of operation sequences generated (*Seq*)
-  * average length of each operation sequence (*Len*)
-  * 1-way and 2-way sequences that are actually tested (*C_1_way* and *C_2_way*), that is, 2xx or 5xx status code is returned
-  * number of all t-way sequences of operations (*All C_SStrength_way*)
-  * number of bugs detected (*Bug*)
-  * number of HTTP requests generated (*Total*)
-  * execution time costs, in seconds (*Cost*) 
-* `swagger`
-  * `acts`: input and ouput files of the ACTS covering array generator
-  * `bug`: detailed information of bugs detected
-  * `log`: stdout obtained during the tool execution
-  * `unresolvedParams.json`: this file records the set of unsolved parameters during the tool execution
-
-For the above Demo service, RestCT will generate and send around 590 HTTP requests (*Total*). About 50% of operaitons (*C_1_way*), and 17% of 2-way sequence of operations (*C_2_way*) will be acutally tested.
+In this case, RestCT is expected to generate and send around 500+ HTTP requests (*Total*). About 50% of operaitons (*C_1_way*), and 17% of 2-way sequence of operations (*C_2_way*) can be acutally tested. The detailed interpretation of the test results can be found at the end of this document.
 
 
 
 ## Use RestCT to Replicate Experiments
-### Test GitLab (6 APIs)
+In our experiment, the performance of RestCT is evaluated under 11 real-world subject APIs of two servcie systems, *GitLab* and *Bing Maps*. The Swagger specifications of these subject APIs are available in the `/root/RestCT/exp/swagger` directory. 
 
-#### Service Deployment
-We rely on Docker to deploy and test *GitLab* in a local environemnt. First, run the following command to deploy the service:
+
+
+### 1. Setup GitLab
+
+**The following commands should be executed in the host machine (outside the `restct` contaier)**.
+
+We rely on Docker to deploy GitLab in the local environemnt. Run the following command to download and start a GitLab container (this initialization process may take several minutes, please wait until the status of the container becomes *healthy*):
 
 ```bash
-# pull the image
-docker pull gitlab/gitlab-ce:13.10.3-ce.0
-# run the service
-docker run --detach \
+sudo docker run --detach \
     --hostname gitlab.example.com \
     --publish 30001:443 --publish 30000:80 --publish 30002:22 \
     --name gitlab \
-    --restart always \
     --volume /srv/gitlab/config:/etc/gitlab \
     --volume /srv/gitlab/logs:/var/log/gitlab \
     --volume /srv/gitlab/data:/var/opt/gitlab \
@@ -88,15 +88,13 @@ docker run --detach \
     gitlab/gitlab-ce:13.10.3-ce.0
 ```
 
-Note that the authentication is required for *GitLab*, and we need to configure it. We use an **OAuth2 token** to authenticate with the API by passing it in the `Authorization` header.
-
-Now, we have an administrator account. Next, we request an `access_token` by sending an HTTP request:
+Since the authentication is required for *GitLab* (that is, an OAuth2 token should be passed in the  `Authorization` header), run the following command to send an HTTP request to GitLab to ask for a token:
 
 ```bash
 curl -d 'grant_type=password&username=admin@example.com&password=password1' -X POST http://localhost:30000/oauth/token
 ```
 
-The response received should like:
+The response received looks like:
 
 ```bash
 {
@@ -108,106 +106,134 @@ The response received should like:
 }
 ```
 
-As such, we can then use the **OAuth2 token** in the header:
+The value of `access_token` is the token that is required to test APIs of GitLab. Run the following command for verification (replace `<OAUTH-TOKEN>` with the value of `access_token` received):
 
 ```bash
-curl --header "Authorization: Bearer OAUTH-TOKEN" "http://localhost:30000/api/v4/projects"
+curl --header "Authorization: Bearer <OAUTH-TOKEN>" "http://localhost:30000/api/v4/projects"
 ```
 
-Now we return the RestCT container, and check the connection with Gitlab Service:
+**Get into the `restct` container again**, and check the connection with the Gitlab service:
+
 ```bash
-ping http://localhost:30000/
+docker run --network host -i -t lxxu/restct:latest /bin/bash
+curl -L http://localhost:30000/
 ```
 
-Generate the experiment scripts for RQ1 and RQ2:
-```bash
-python3.8 /root/RestCT/exp/scripts.py --gitlabAuth <OAUTH-TOKEN>
-```
-* Replace `<OAUTH-TOKEN>` with token got above
-
-#### 1. Experiments of RQ1
-```bash
-cd /root/RestCT/exp/output/GitLab_RQ1
-bash /root/RestCT/exp/runScripts/GitLab_RQ1/runAll.sh 
-```
-
-#### 2. Experiments of RQ2
-```bash
-cd /root/RestCT/exp/output/GitLab_RQ2
-bash /root/RestCT/exp/runScripts/GitLab_RQ2/runAll.sh 
-```
-
-The experiment is not over until the word "Done!" appears in the standard output 
-
-**The RestCT tool requests the same GitLab server, so the two groups of experiments must not be parallel**
-
-**For RQ1, we commended to use subject `branch`, `commit`,`groups`, or `repository` as a quick assessemnt (about 2~6 minutes for each to execute), because the other two subjects might take about 30 minutes to execute**. 
-For example, run the following command to test subject `branch`:
-```bash
-bash /root/RestCT/exp/runScripts/GitLab_RQ1/scripts/Branch_2_3_2.sh
-```
-The experiment will end in a few minutes
-
-Once the test execution finishes, several evaluation metrics will be calculated and recorded. See the end of this document for the interpretation of these results.
 
 
-### Test BingMaps (5 APIs)
+### 2. Setup Bing Maps
 
-#### Service Deployment
 We rely on the publicly hosted service of Bing Maps to perform testing, so there is no need to deploy the service.
 
-Authentication is also required for *Bing Maps*. To do this, please register an account at [Bing Maps Dev Center](https://www.bingmapsportal.com/) at first.
+However, the authentication is still required. To this end, please register an account at [Bing Maps Dev Center](https://www.bingmapsportal.com/) at first. Then, apply an API key according to the following steps:
 
-Then, apply an API key according to the following steps:
-
-- Sign in to the Bing Maps Dev Center with your Microsoft Account.
+- Sign in to the Bing Maps Dev Center with your account.
 - Go to “My Account” and click on “My Keys.”
-- Fill out the form and click “Create” and get your API key details.
+- Fill out the form and click on the “Create” button (leave Key Type and Application Type as their default values)
+- In the "Key details" section, click on the  "Show Key"  link to get the token.
 
-Generate the experiment scripts for RQ1 and RQ2:
+
+
+### 3. Run the Experiments
+
+**The commands in this section should be executed inside the `restct` contaier**.
+
+First, run the following command to generate experiment scripts (replace `<GitLab-TOKEN>` and `<BingMaps-TOKEN>` with their respective tokens received before):
+
 ```bash
-python3.8 /root/RestCT/exp/scripts.py --bingMapAuth <KEY-TOKEN>
+# for GitLab
+python3.8 /root/RestCT/exp/scripts.py --gitlabAuth <GitLab-TOKEN>
+# for Bing Maps
+python3.8 /root/RestCT/exp/scripts.py --bingMapAuth <BingMaps-TOKEN>
 ```
-* Replace `<OAUTH-TOKEN>` with token got above
 
-#### 1. Experiments of RQ1
+
+
+#### RQ1
+
+Run the following command to apply RestCT to test subject APIs under the default coverage strength configuration `(ss,es,as) = (2,3,2)` (repeat once for each subject API):
+
 ```bash
+# test GitLab (6 APIs)
+cd /root/RestCT/exp/output/GitLab_RQ1
+bash /root/RestCT/exp/runScripts/GitLab_RQ1/runAll.sh 
+# test Bing Maps (5 APIs)
 cd /root/RestCT/exp/output/BingMap_RQ1
 bash /root/RestCT/exp/runScripts/BingMap_RQ1/runAll.sh 
 ```
 
-#### 2. Experiments of RQ2
+**It will take about one hour to test all APIs of GitLab, and three hours to test all APIs of Bing Maps**.
+
+For a quick assessemnt, we recommend to run the experimets on the APIs of **Branch** (for GitLab) and **Elevations** (for Bing Maps), which will take several minutes only to execute (scripts to test each single subject API can be found in the `scripts` directory):
+
 ```bash
+# test Branch (GitLab)
+cd /root/RestCT/exp/output/GitLab_RQ1
+bash /root/RestCT/exp/runScripts/GitLab_RQ1/scripts/Branch_2_3_2.sh 2>&1
+# test Elevations (Bing Maps)
+cd /root/RestCT/exp/output/BingMap_RQ1
+bash /root/RestCT/exp/runScripts/BingMap_RQ1/scripts/Elevations_2_3_2.sh 2>&1
+```
+
+Once the test execution finishes, statistics of test results can be found in the `statistics.csv` file:
+
+```bash
+cat statistics.csv
+```
+
+
+
+#### RQ2
+
+Run the following command to apply RestCT to test subject APIs under six different coverage strength configurations (repeat once for each subject API):
+
+```bash
+# test GitLab (6 APIs * 6 configurations)
+cd /root/RestCT/exp/output/GitLab_RQ2
+bash /root/RestCT/exp/runScripts/GitLab_RQ2/runAll.sh 
+# test Bing Maps (5 APIs * 6 configurations)
 cd /root/RestCT/exp/output/BingMap_RQ2
 bash /root/RestCT/exp/runScripts/BingMap_RQ2/runAll.sh 
 ```
 
-The experiment is not over until the word "Done!" appears in the standard output 
+**It will take about 24 hours to test all APIs of either GitLab or Bing Maps**.
 
-**Do not run the two groups of experiments in parallel, avoiding affecting the experimental results**
+Alternatively, for a quick assessment of the performance of RestCT under a specific coverage strength, run the following scripts:
 
-Once the test execution finishes, several evaluation metrics will be calculated and recorded. See the end of this document for the interpretation of these results.
+```bash
+# test Branch (GitLab)
+cd /root/RestCT/exp/output/GitLab_RQ2
+bash /root/RestCT/exp/runScripts/GitLab_RQ2/scripts/Branch_[ss]_[es]_[as].sh 2>&1
+# test Elevations (Bing Maps)
+cd /root/RestCT/exp/output/BingMap_RQ2
+bash /root/RestCT/exp/runScripts/BingMap_RQ1/scripts/Elevations_[ss]_[es]_[as].sh 2>&1
+```
 
+Here, `[ss]`, `[es]`, and `[as]` indicate the coverage strengths applied for operation sequences, essentiall input-parameters, and all input-parameters, respectively. All possible choices include `1_3_2`, `3_3_2`, `2_2_2`, `2_4_2`, `2_3_1`, `2_3_3` (a high coverage strength typically indicates a high test execution cost).
 
-## Experimental Data
-
-When the execution of RestCT finishes, the test results can be found in the `/root/RestCT/exp/output/GitLab[BingMap]_RQ1[RQ2]` direcotry. These include:
-
-* `statistics.csv`: this file records primary metrics for evaluation (tht is, the numbers reported in the paper), including:
-  * coverage strengths applied (*SStrength*=2, *EStrength*=3, and *AStrength*=2, by default)
-  * the number of operation sequences generated (*Seq*)
-  * average length of each operation sequence (*Len*)
-  * 1-way and 2-way sequences that are actually tested (*C_1_way* and *C_2_way*)
-  * number of all t-way sequences of operations (*All C_SStrength_way*)
-  * number of bugs detected (*Bug*)
-  * execution time costs, in seconds (*Cost*) 
-* `swagger`
-  * `acts`: this directory records input and output files of the ACTS covering array generator
-  * `bug`: this directory records the detailed information of bugs detected
-  * `log`: this directory records the stdout obtained during the tool execution
-  * `unresolvedParams.json`: this file records the set of unsolved parameters during the tool execution
+**Note**: Do not run the experiment scripts (for either RQ1 or RQ2) in parallel to avoid affecting the experimental results.
 
 
-## Additional Notes
 
-We note that we cannot guarantee a 100% accurate replication of our experiments in the artifact. As also pointed out by [previous studies](https://github.com/EMResearch/EvoMaster/blob/master/docs/replicating_ studies.md), the approaches of testing RESTful APIs will deal with the networking (non-determinism often occurs), and the algorithm typically involves some levels of randomness. In addition, some subject APIs are remotely deployed web services, and they could be updated frequently. Hence, after running scripts in the artifact, experimental results that are different from those reported in the paper might be observed (especially, when the testing process is only repeated one or two times). Nevertheless, the average results should be similar in most of the times.
+### 4. Experimental Resutls
+
+When the executions of the above scripts finish, the test results can be found in the `/root/RestCT/exp/output/GitLab[BingMap]_RQ1[RQ2]` direcotry. For each test execution, the results reporeted include:
+
+* `statistics.csv`: this file records primary metrics for evaluation (that is, the numbers reported in the paper), including:
+   * coverage strengths applied (*SStrength*=2, *EStrength*=3, and *AStrength*=2, by default)
+   * the number of operation sequences generated (*Seq*)
+   * average length of each operation sequence (*Len*)
+   * 1-way and 2-way sequences that are actually tested (*C_1_way* and *C_2_way*), that is, 2xx or 5xx status code is returned for every operation
+   * number of all t-way sequences of operations (*All C_SStrength_way*)
+   * number of bugs detected (*Bug*)
+   * number of HTTP requests generated (*Total*)
+   * execution time costs, in seconds (*Cost*) 
+* `swagger`: additional logging files, including:
+   * `acts`: input and ouput files of the ACTS covering array generator
+   * `bug`: detailed information of bugs detected
+   * `log`: stdout obtained during the tool execution
+   * `unresolvedParams.json`: the set of unsolved parameters during the testing process
+
+
+
+We note that we cannot guarantee a 100% accurate replication of our experiments. As also pointed out by [other studies](https://github.com/EMResearch/EvoMaster/blob/master/docs/replicating_studies.md), the approaches of testing RESTful APIs typically suffer from non-determinism, because they need deal with the networking, and the algorithms usually involve some levels of randomness. In addition, some subject APIs are remotely deployed web services, and they could be updated unpredictably. Hence, after running the above scripts, experimental results that are different from those reported in the paper might be observed (especially, when the testing process is only repeated one or two times). Nevertheless, the average results should be similar in most of the times.
