@@ -366,9 +366,9 @@ class ACTS:
         # acts 的文件路径不可以以"\"作为分割符，会被直接忽略，"\\"需要加上repr，使得"\\"仍然是"\\".
         command = r'java -Dalgo={0} -Ddoi={1} -Doutput=csv -jar {2} {3} {4}'.format(algorithm, str(self._strength),
                                                                                     str(jarPath),
-                                                                                    inputFile.as_posix(),
-                                                                                    outputFile.as_posix())
-        stdout, stderr = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE,
+                                                                                    str(inputFile),
+                                                                                    str(outputFile))
+        stdout, stderr = subprocess.Popen(shlex.split(command, posix=False), stdout=subprocess.PIPE,
                                           stderr=subprocess.PIPE).communicate()
         encoding = chardet.detect(stdout)["encoding"]
         stdout.decode(encoding)
