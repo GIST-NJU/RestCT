@@ -10,6 +10,9 @@ For the implementation details of RestCT, please refer to the following paper:
 
 ## Usage
 
+### Requirement
+Linux or MacOs system, we are trying our best to support Windows.
+
 ### Setup
 
 RestCT requires Python and Java running environment (`Python 3.8.2` and `Java 1.8` are used for the development), so please ensure that they are correctly installed and configured.

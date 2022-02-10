@@ -1,6 +1,6 @@
 # Docker Image for Artifact Evaluation
 
-We provide a Docker image, `restct`, to simply the assessment of the RestCT tool. In this case, users can skip environment settings to run the RestCT tool, and also replicate the experiments reported in the paper.
+We provide a Docker image, `restct`, to simply the assessment of the RestCT tool. In this case, users can skip environment settings to run the RestCT tool, and also replicate the experiments reported in the paper. *At present, we only provide `restct` docker image for `linux/amd64`.*
 
 A copy of this image is also archived at DOI [10.5281/zenodo.5909761](https://doi.org/10.5281/zenodo.5909761).
 
@@ -87,6 +87,7 @@ sudo docker run --detach \
     --env GITLAB_ROOT_PASSWORD=password1 \
     gitlab/gitlab-ce:13.10.3-ce.0
 ```
+Gitlab CE only provides docker images for `linux/amd64`, so if host machine is a Mac with Apple's M1 chips, you have to replace `gitlab/gitlab-ce` with `yrzr/gitlab-ce-arm64v8`. `yrzr/gitlab-ce-arm64v8` is compatible with MacOs(M1), but we are not sure whether the performance of the gitlab deployed on MacOs(M1) is consistent with the official one.
 
 Since the authentication is required for *GitLab* (that is, an OAuth2 token should be passed in the  `Authorization` header), run the following command to send an HTTP request to GitLab to ask for a token:
 

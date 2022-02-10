@@ -1,6 +1,6 @@
 # Replication of Experiments
 
-The performance of RestCT is evaluated under 11 real-world subject APIs of two service systems, *GitLab* and *Bing Maps* (their Swagger specifications are available in the `swagger` directory). This document provides instructions for replicating the above experiments in a Linux platform.
+The performance of RestCT is evaluated under 11 real-world subject APIs of two service systems, *GitLab* and *Bing Maps* (their Swagger specifications are available in the `swagger` directory). This document provides instructions for replicating the above experiments in a **Linux** platform.
 
 For the instructions that use Docker images to replicate the experiments, please see [README_DOCKER](https://github.com/GIST-NJU/RestCT/blob/main/README_DOCKER.md).
 
@@ -23,6 +23,9 @@ sudo docker run --detach \
     --env GITLAB_ROOT_PASSWORD=password1 \
     gitlab/gitlab-ce:13.10.3-ce.0
 ```
+
+Gitlab CE only provides docker images for `linux/amd64`, so if host machine is a Mac with Apple's M1 chips, you have to replace `gitlab/gitlab-ce` with `yrzr/gitlab-ce-arm64v8`. `yrzr/gitlab-ce-arm64v8` is compatible with MacOs(M1), but we are not sure whether the performance of the gitlab deployed on MacOs(M1) is consistent with the official one.
+
 
 Since the authentication is required for *GitLab* (that is, an OAuth2 token should be passed in the  `Authorization` header), run the following command to send an HTTP request to GitLab to ask for a token:
 
