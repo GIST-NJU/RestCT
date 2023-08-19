@@ -202,12 +202,12 @@ class AbstractParam(metaclass=abc.ABCMeta):
     def isEssential(self):
         return self.isConstrained or self.required
 
-    def seeAllParameters(self) -> List:
+    def seeAllParameters(self, prefix) -> List[Tuple]:
         """get Parameters itself and its children"""
         if self.name is None or self.name == "":
             return list()
         else:
-            return [self]
+            return [(prefix + "@" + self.name, self)]
 
     def genDomain(self, opStr, responseChains, okValues) -> list:
         if self.isReuse:
@@ -404,10 +404,10 @@ class ObjectParam(AbstractParam):
                     child.required = True
         return cls(**info)
 
-    def seeAllParameters(self) -> List[AbstractParam]:
-        allParameters = [self]
+    def seeAllParameters(self, prefix) -> List[AbstractParam]:
+        allParameters = [(prefix + "@" + self.name, self)]
         for child in self._children:
-            allParameters.extend(child.seeAllParameters())
+            allParameters.extend(child.seeAllParameters(prefix + "@" + self.name))
         return allParameters
 
     def genDomain(self, opStr, responseChains, okValues) -> list:
@@ -452,7 +452,7 @@ class ArrayParam(AbstractParam):
         if len(itemInfo) == 0:
             raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
         elif ParamKey.TYPE in itemInfo.keys():
-            itemParam = buildParam(itemInfo, definitions, info.get("specifiedName"))
+            itemParam = buildParam(itemInfo, definitions, "_item")
             # info["specifiedName"] = ""
             info["itemParam"] = itemParam
             return cls(**info)
@@ -461,15 +461,15 @@ class ArrayParam(AbstractParam):
             itemInfoCopied = dict()
             itemInfoCopied.update(itemInfo)
             itemInfoCopied.update(AbstractParam.getRef(ref_info, definitions))
-            itemParam = buildParam(itemInfoCopied, definitions, info.get("specifiedName"))
+            itemParam = buildParam(itemInfoCopied, definitions, "_item")
             # info["specifiedName"] = ""
             info["itemParam"] = itemParam
             return cls(**info)
         else:
             raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
 
-    def seeAllParameters(self) -> List[AbstractParam]:
-        allParameters = self._item.seeAllParameters()
+    def seeAllParameters(self, prefix) -> List[AbstractParam]:
+        allParameters = self._item.seeAllParameters(prefix+"@"+self.name)
         return allParameters
 
     def genDomain(self, opStr, responseChains, okValues) -> list:

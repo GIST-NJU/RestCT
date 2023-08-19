@@ -59,7 +59,7 @@ class Operation:
     def _flatMapParameter(self):
         allParameters = list()
         for param in self.parameterList:
-            allParameters.extend(param.seeAllParameters())
+            allParameters.extend(param.seeAllParameters(""))
         return allParameters
 
     @property
