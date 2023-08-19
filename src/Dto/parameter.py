@@ -6,7 +6,7 @@ import string
 import Levenshtein
 from enum import Enum
 from datetime import datetime, timedelta
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Dict
 from src.Dto.keywords import Loc, ParamKey, DataType, DocKey
 from src.Exception.exceptions import UnsupportedError
 
@@ -190,8 +190,10 @@ class AbstractParam(metaclass=abc.ABCMeta):
         self.isConstrained = False
         # domain
         self.domain: List[Tuple[ValueType, Union[str, int, float, None]]] = list()
-        self.value: Tuple[ValueType, str] = tuple()
+        # self.value: Tuple[ValueType, str] = tuple()
+        self.value = None
         self.isReuse: bool = False
+        self.parent: AbstractParam = None
 
     @staticmethod
     def getRef(ref: str, definitions: dict):
@@ -202,12 +204,12 @@ class AbstractParam(metaclass=abc.ABCMeta):
     def isEssential(self):
         return self.isConstrained or self.required
 
-    def seeAllParameters(self, prefix) -> List[Tuple]:
+    def seeAllParameters(self) -> List:
         """get Parameters itself and its children"""
         if self.name is None or self.name == "":
             return list()
         else:
-            return [(prefix + "@" + self.name, self)]
+            return [self]
 
     def genDomain(self, opStr, responseChains, okValues) -> list:
         if self.isReuse:
@@ -257,7 +259,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
             domain.append((valueType, value))
         return domain
 
-    def _getDynamicValues(self,  opStr, responseChains):
+    def _getDynamicValues(self, opStr, responseChains):
         """完全重用，需要改进"""
         assert self.loc is Loc.Path
         assert self.name != "" and self.name is not None
@@ -374,11 +376,14 @@ class AbstractParam(metaclass=abc.ABCMeta):
     def __repr__(self):
         return self.name
 
-    @abc.abstractmethod
-    def assemble(self, value_dict: Dict[str, str]): pass
+    def getGlobalName(self):
+        if self.parent is not None:
+            return self.parent.getGlobalName() + "@" + self.name
+        else:
+            return self.name
 
     @abc.abstractmethod
-    def getValueDto(self, value_dict) -> Union:
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
         # object -> dict
         # array -> list
         pass
@@ -390,6 +395,9 @@ class ObjectParam(AbstractParam):
         super().__init__(specifiedName, default, loc, required, paramType, paramFormat, description)
 
         self._children: List[AbstractParam] = children
+        self.value: Dict[str, Tuple[ValueType, str]] = dict()
+        for child in self._children:
+            child.parent = self
 
     @classmethod
     def buildObject(cls, info, definitions):
@@ -405,7 +413,8 @@ class ObjectParam(AbstractParam):
                 if DocKey.REF_SIGN in childrenInfo.keys():
                     childrenInfo = AbstractParam.getRef(childrenInfo.get(DocKey.REF_SIGN), definitions)
 
-        children = [buildParam(pInfo, definitions, pName) for pName, pInfo in childrenInfo.get(DocKey.PROPERTIES).items()]
+        children = [buildParam(pInfo, definitions, pName) for pName, pInfo in
+                    childrenInfo.get(DocKey.PROPERTIES).items()]
         info["children"] = children
         if isinstance(info.get("required"), list):
             for child in children:
@@ -413,10 +422,10 @@ class ObjectParam(AbstractParam):
                     child.required = True
         return cls(**info)
 
-    def seeAllParameters(self, prefix) -> List[AbstractParam]:
-        allParameters = [(prefix + "@" + self.name, self)]
+    def seeAllParameters(self) -> List[AbstractParam]:
+        allParameters = []
         for child in self._children:
-            allParameters.extend(child.seeAllParameters(prefix + "@" + self.name))
+            allParameters.extend(child.seeAllParameters())
         return allParameters
 
     def genDomain(self, opStr, responseChains, okValues) -> list:
@@ -437,6 +446,13 @@ class ObjectParam(AbstractParam):
                 value[child.name] = child.printableValue(response)
         return None if len(value.keys()) == 0 else value
 
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]):
+        object_param = dict()
+        for child in self._children:
+            object_param.update({child.name: child.getValueDto(value_dict)})
+        self.value = object_param
+        return self.value
+
 
 class ArrayParam(AbstractParam):
     def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,
@@ -446,12 +462,15 @@ class ArrayParam(AbstractParam):
 
         # todo: make maxItems and minItems work
         self._item: AbstractParam = itemParam
+        self._item.parent = self
         self._item.required = self.required
         self._item.isConstrained = self.isConstrained
 
         self._maxItems = maxItems
         self._minItems = minItems
         self._unique: bool = unique
+
+        self.value: List = list()
 
         assert self._minItems <= self._maxItems
 
@@ -477,8 +496,8 @@ class ArrayParam(AbstractParam):
         else:
             raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
 
-    def seeAllParameters(self, prefix) -> List[AbstractParam]:
-        allParameters = self._item.seeAllParameters(prefix+"@"+self.name)
+    def seeAllParameters(self) -> List[AbstractParam]:
+        allParameters = self._item.seeAllParameters()
         return allParameters
 
     def genDomain(self, opStr, responseChains, okValues) -> list:
@@ -493,6 +512,12 @@ class ArrayParam(AbstractParam):
             return None
         else:
             return [value]
+
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        array_param = list()
+        array_param.append(self._item.getValueDto(value_dict))
+        self.value = array_param
+        return self.value
 
 
 class BoolParam(AbstractParam):
@@ -510,6 +535,10 @@ class BoolParam(AbstractParam):
 
     def genRandom(self):
         pass
+
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value
 
 
 class EnumParam(AbstractParam):
@@ -529,6 +558,10 @@ class EnumParam(AbstractParam):
 
     def genRandom(self):
         pass
+
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value
 
 
 class FileParam(AbstractParam):
@@ -558,6 +591,10 @@ class FileParam(AbstractParam):
             else:
                 return value
 
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value
+
 
 class NumberParam(AbstractParam):
     def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,
@@ -586,6 +623,10 @@ class NumberParam(AbstractParam):
             randomValues = map(lambda n: n * self._multipleOf, randomValues)
         return randomValues
 
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value
+
 
 class StringParam(AbstractParam):
     def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,
@@ -606,6 +647,10 @@ class StringParam(AbstractParam):
             randomValues = [base64.b64encode(s.encode("utf-8")).decode("utf-8") for s in randomValues]
         return randomValues
 
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value
+
 
 class Date(AbstractParam):
     def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,
@@ -621,12 +666,12 @@ class Date(AbstractParam):
         timeFormat = "%Y-%m-%d"
         timeDto = datetime.utcnow() if timeDto is None else timeDto
         randomValues = list()
-        randomValues.append((ValueType.Random, timeDto.strftime(timeFormat)))
+        randomValues.append(timeDto.strftime(timeFormat))
         for i in range(AbstractParam.randomCount - 1):
             if i % 2 == 0:
-                randomValues.append((ValueType.Random, (timeDto + timedelta(days=-i - 1)).strftime(timeFormat)))
+                randomValues.append((timeDto + timedelta(days=-i - 1)).strftime(timeFormat))
             else:
-                randomValues.append((ValueType.Random, (timeDto + timedelta(days=i + 1)).strftime(timeFormat)))
+                randomValues.append((timeDto + timedelta(days=i + 1)).strftime(timeFormat))
         return randomValues
 
     def printableValue(self, response):
@@ -642,6 +687,10 @@ class Date(AbstractParam):
                     value = Date.getMutate()[0]
             return value
 
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value
+
 
 class UuidParam(AbstractParam):
     def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,
@@ -650,6 +699,10 @@ class UuidParam(AbstractParam):
 
     def genRandom(self) -> list:
         pass
+
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value
 
 
 class DateTime(AbstractParam):
@@ -664,13 +717,12 @@ class DateTime(AbstractParam):
     @staticmethod
     def getMutate(timeDto):
         randomValues = list()
-        randomValues.append((ValueType.Random, timeDto.isoformat(timespec='seconds')))
+        randomValues.append(timeDto.isoformat(timespec='seconds'))
         for i in range(AbstractParam.randomCount - 1):
             if i % 2 == 0:
-                randomValues.append(
-                    (ValueType.Random, (timeDto + timedelta(days=-i - 1)).isoformat(timespec='seconds')))
+                randomValues.append((timeDto + timedelta(days=-i - 1)).isoformat(timespec='seconds'))
             else:
-                randomValues.append((ValueType.Random, (timeDto + timedelta(days=i + 1)).isoformat(timespec='seconds')))
+                randomValues.append((timeDto + timedelta(days=i + 1)).isoformat(timespec='seconds'))
         return randomValues
 
     def printableValue(self, response):
@@ -685,3 +737,7 @@ class DateTime(AbstractParam):
             #     except ValueError:
             #         value = DateTime.getMutate(datetime.utcnow())[0]
             return value
+
+    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), [])
+        return self.value

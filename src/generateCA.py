@@ -228,7 +228,7 @@ class CA:
             paramList: List[AbstractParam] = list()
             for p in essentialParamList:
                 paramList.extend(p.genDomain(operation.__repr__(), chain, CA.okValueDict))
-            paramNames = [p.name for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
+            paramNames = [p.getGlobalName() for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
             domains = [p.domain for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
             logger.debug("        generate new domains...")
             for i, p in enumerate(paramNames):
@@ -251,8 +251,11 @@ class CA:
             logger.debug("        use reuseSeq info: {}, parameters: {}", len(reuseSeq), len(reuseSeq[0].keys()))
             return reuseSeq
         else:
-            paramList: List[AbstractParam] = operation.genDomain(chain, CA.okValueDict)
-            paramNames = [p.name for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
+            paramList: List[AbstractParam] = list()
+            for p in allParamList:
+                paramList.extend(p.genDomain(operation.__repr__(), chain, CA.okValueDict))
+            paramNames = [p.getGlobalName() for p in paramList if
+                          operation.__repr__() + p.name not in self._unresolvedParam]
             domains = [p.domain for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
 
             successEssentialCases = CA.reuseEssentialSeqDict.get(urlTuple, list())
@@ -408,6 +411,7 @@ class SendRequest:
         responses = list()
         for case in self._coverArray:
             self.setParamValue(case)
+            p = self._operation.parameterList
             kwargs = self.assemble()
             statusCode, response = self.send(**kwargs)
             statusCodes.append(statusCode)
