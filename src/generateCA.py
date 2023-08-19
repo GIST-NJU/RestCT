@@ -472,9 +472,9 @@ class SendRequest:
         return kwargs
 
     def setParamValue(self, case: Dict[str, Tuple[ValueType, object]]):
-        parameters: List[AbstractParam] = self._operation.genDomain(dict(), dict())
-        for p in parameters:
-            p.value = case.get(p.name, [])
+        # parameters: List[AbstractParam] = self._operation.genDomain(dict(), dict())
+        for p in self._operation.parameterList:
+            p.value = p.getValueDto(case)
 
     def send(self, **kwargs) -> Tuple[int, Union[str, dict, None]]:
         SendRequest.callNumber += 1

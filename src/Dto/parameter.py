@@ -374,6 +374,15 @@ class AbstractParam(metaclass=abc.ABCMeta):
     def __repr__(self):
         return self.name
 
+    @abc.abstractmethod
+    def assemble(self, value_dict: Dict[str, str]): pass
+
+    @abc.abstractmethod
+    def getValueDto(self, value_dict) -> Union:
+        # object -> dict
+        # array -> list
+        pass
+
 
 class ObjectParam(AbstractParam):
     def __init__(self, specifiedName: str, default: list, loc: Loc, required: bool, paramType: DataType,

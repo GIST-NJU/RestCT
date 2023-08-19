@@ -44,11 +44,11 @@ class Operation:
 
         Operation.members.append(self)
 
-    def genDomain(self, responseChain, okValues):
-        paramList = list()
-        for param in self.parameterList:
-            paramList.extend(param.genDomain(self.__repr__(), responseChain, okValues))
-        return paramList
+    # def genDomain(self, responseChain, okValues):
+    #     paramList = list()
+    #     for param in self.parameterList:
+    #         paramList.extend(param.genDomain(self.__repr__(), responseChain, okValues))
+    #     return paramList
 
     def addParam(self, param: AbstractParam):
         self.parameterList.append(param)
