@@ -71,6 +71,7 @@ class CA:
                 logger.info("        {}-th operation essential parameters covering array size: {}, parameters: {}, constraints: {}".format(i + 1, len(coverArray), len(coverArray[0]), len(operation.constraints)))
                 essentialSender = SendRequest(operation, coverArray, chain)
                 statusCodes, responses = essentialSender.main()
+                logger.info("Status code: {}".format(statusCodes))
                 self._handleFeedback(chain, operation, statusCodes, responses, coverArray, successUrlTuple, False)
                 eSuccessCodes = set(filter(lambda c: c in range(200, 300), statusCodes))
                 bugCodes = set(filter(lambda c: c in range(500, 600), statusCodes))
@@ -86,6 +87,7 @@ class CA:
                 logger.info("*" * 100)
                 allSender = SendRequest(operation, coverArray, chain)
                 statusCodes, responses = allSender.main()
+                logger.info("Status code: {}".format(statusCodes))
                 self._handleFeedback(chain, operation, statusCodes, responses, coverArray, successUrlTuple, True)
 
                 successCodes = set(filter(lambda c: c in range(200, 300), statusCodes))
@@ -226,9 +228,8 @@ class CA:
             paramList: List[AbstractParam] = list()
             for p in essentialParamList:
                 paramList.extend(p.genDomain(operation.__repr__(), chain, CA.okValueDict))
-            paramNames = [p.name for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
+            paramNames = [p.getGlobalName() for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
             domains = [p.domain for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
-
             logger.debug("        generate new domains...")
             for i, p in enumerate(paramNames):
                 logger.debug("            {}: {} - {}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
@@ -250,8 +251,11 @@ class CA:
             logger.debug("        use reuseSeq info: {}, parameters: {}", len(reuseSeq), len(reuseSeq[0].keys()))
             return reuseSeq
         else:
-            paramList: List[AbstractParam] = operation.genDomain(chain, CA.okValueDict)
-            paramNames = [p.name for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
+            paramList: List[AbstractParam] = list()
+            for p in allParamList:
+                paramList.extend(p.genDomain(operation.__repr__(), chain, CA.okValueDict))
+            paramNames = [p.getGlobalName() for p in paramList if
+                          operation.__repr__() + p.name not in self._unresolvedParam]
             domains = [p.domain for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
 
             successEssentialCases = CA.reuseEssentialSeqDict.get(urlTuple, list())
@@ -407,6 +411,7 @@ class SendRequest:
         responses = list()
         for case in self._coverArray:
             self.setParamValue(case)
+            p = self._operation.parameterList
             kwargs = self.assemble()
             statusCode, response = self.send(**kwargs)
             statusCodes.append(statusCode)
@@ -467,13 +472,13 @@ class SendRequest:
         if len(formData) > 0:
             kwargs["data"] = formData
         if len(body) > 0:
-            kwargs["json"] = body
+            kwargs["data"] = json.dumps(body)
         return kwargs
 
     def setParamValue(self, case: Dict[str, Tuple[ValueType, object]]):
-        parameters: List[AbstractParam] = self._operation.genDomain(dict(), dict())
-        for p in parameters:
-            p.value = case.get(p.name, [])
+        # parameters: List[AbstractParam] = self._operation.genDomain(dict(), dict())
+        for p in self._operation.parameterList:
+            p.value = p.getValueDto(case)
 
     def send(self, **kwargs) -> Tuple[int, Union[str, dict, None]]:
         SendRequest.callNumber += 1

@@ -17,7 +17,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -203,7 +203,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -399,7 +399,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -717,7 +717,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -791,7 +791,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -822,7 +822,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -853,7 +853,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -884,7 +884,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -915,7 +915,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -1017,8 +1017,15 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
+                    },
+                    {
+                        "name": "requestId",
+                        "required": true,
+                        "in": "query",
+                        "type": "string",
+                        "example": "90b07189-33d8-4cbf-866a-1bd5c5b4f474"
                     },
                     {
                         "name": "waypoint",
@@ -1119,7 +1126,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -1150,7 +1157,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -1181,7 +1188,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -1190,7 +1197,7 @@
                         "in": "query",
                         "type": "string",
                         "description": "The point around which the isochrone will be calculated.",
-                        "example": "47.610,-122.107 "
+                        "example": "47.610,-122.107"
                     },
                     {
                         "name": "maxTime",
@@ -1299,7 +1306,7 @@
                         "type": "string",
                         "description": "BingMapsAPIKey",
                         "enum": [
-                            "AtI47DZkFsqZK_2Ks7A_68EwjlpTLNI2imXFZey-6jt_YnFE1n3SXVZ6umljRFch"
+                            "AqWnvDn5xfU0K3XGxeY5Xzoq4XSYDK35Gm6rjbyp-_jpc_fVRJrH9kuvmsESEA7L"
                         ]
                     },
                     {
@@ -1415,7 +1422,10 @@
             ],
             "properties": {
                 "points": {
+                    "type": "array",
+                    "items": {
                     "$ref": "#/definitions/Location"
+                    }
                 },
                 "interpolate": {
                     "type": "boolean"
