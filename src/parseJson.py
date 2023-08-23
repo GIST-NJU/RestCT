@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from urllib.parse import urlparse, urljoin
 from src.Dto.keywords import DocKey, ParamKey, DataType, Method
 from src.Dto.operation import Operation
 from src.Dto.parameter import buildParam, Example
@@ -10,7 +11,7 @@ URL_PREFIX = ""
 DEFINITIONS = dict()
 
 
-def parse():
+def parse(target_base_url=None):
     """
     1. parse definition for examples, definitions dto
     2. parse paths for operations dto
@@ -18,7 +19,7 @@ def parse():
         2.2 get responses dto
         2.3 get examples dto
     """
-    from src.restct import Config
+    from src.main import Config
     swagger = Path(Config.swagger)
     with swagger.open("r") as fp:
         spec = json.load(fp)
@@ -26,6 +27,9 @@ def parse():
     # get url prefix for all resources' url in paths
     global URL_PREFIX
     URL_PREFIX = _compile_url(spec)
+    if (target_base_url is not None):
+        parsed_url = urlparse(URL_PREFIX)
+        URL_PREFIX = urljoin(target_base_url, parsed_url.path)
 
     # get definitions
     global DEFINITIONS

@@ -2,8 +2,8 @@ import time
 from pathlib import Path
 from loguru import logger
 from src.parseJson import parse
-from src.generateSCA import SCA
-from src.generateCA import CA, SendRequest
+from src.sca import SCA
+from src.ca import CA, SendRequest
 from src.Dto.parameter import Example
 from itertools import combinations
 from src.Dto.operation import Operation
@@ -108,7 +108,7 @@ class RESTCT:
 
         for sequence in sorted(SCA.members, key=lambda item: len(item)):
             ca = CA(sequence)
-            flag = ca.main(RESTCT.budget - (time.time() - startTime))
+            flag = ca.handle(RESTCT.budget - (time.time() - startTime))
             if not flag:
                 break
         Report.Cost = time.time() - startTime
