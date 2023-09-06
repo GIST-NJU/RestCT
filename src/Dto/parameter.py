@@ -33,7 +33,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         else:
             raise UnsupportedError(info)
         extraInfo.update(info)
-        return buildParam(extraInfo, definitions)
+        return buildParam(extraInfo, definitions, buildInfo.get("specifiedName"))
     elif paramEnum is not None:
         buildInfo["enum"] = paramEnum
         return EnumParam(**buildInfo)
