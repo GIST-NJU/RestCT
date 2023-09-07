@@ -6,6 +6,7 @@ class LiveSession(Session):
     """
     https://stackoverflow.com/questions/42601812/python-requests-url-base-in-session
     """
+
     def __init__(self, base_url: str):
         super().__init__()
         self.base_url = base_url
@@ -16,15 +17,19 @@ class LiveSession(Session):
 
 
 class RemoteController:
-    def __init__(self):
-        self._base_path = "http:localhost:8081/commands"
-        self._register_testcase = "/registerTestCase"
-        self._stop_testcase = "/stopTestcase"
+    def __init__(self, base_path):
+        self._base_path = base_path
+        self._register_testcase = "/commands/registerTestCase"
+        self._stop_testcase = "/commands/stopTestcase"
 
-    def register_testcase(self):
+    def register_testcase(self, logger):
         with LiveSession(self._base_path) as s:
-            s.post(self._register_testcase)
+            r = s.post(self._register_testcase, timeout=30)
+            if r.status_code >= 300:
+                r = s.post(self._register_testcase)
+            logger.debug(r.text)
 
-    def stop_testcase(self):
+    def stop_testcase(self, logger):
         with LiveSession(self._base_path) as s:
-            s.post(self._stop_testcase)
+            r = s.post(self._stop_testcase, timeout=30)
+            logger.debug(r.text)

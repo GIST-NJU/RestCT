@@ -130,23 +130,17 @@ class Graph:
 
 
 class SCA:
-    members: List[Tuple[Operation]] = list()
+    def __init__(self, strength, operations):
+        self._strength = strength
+        self._operations = operations
+        
+        self.uncoveredSet = set()
 
-    def __init__(self):
-        from src.main import Config
-        self._strength = min(Config.s_strength, len(Operation.members))
-        self.uncoveredSet = self._collectUncoveredSet()
-
-        # start time
-        self.time = time.time()
-
-    def _collectUncoveredSet(self):
+    def collectUncoveredSet(self):
         """get all combinations to be covered"""
-        uncoveredSet = set()
-        for p in permutations(Operation.members, self._strength):
+        for p in permutations(self._operations, self._strength):
             if self._isValidP(p):
-                uncoveredSet.add(p)
-        return uncoveredSet
+                self.uncoveredSet.add(p)
 
     @staticmethod
     def _isValidP(permutation):
@@ -227,7 +221,7 @@ class SCA:
 
     def buildSequence(self) -> Tuple[Operation]:
         sequence: List[Operation] = list()
-        graph = Graph.buildGraph(Operation.members)
+        graph = Graph.buildGraph(self._operations)
         loopFlag = True
 
         while loopFlag:
@@ -249,5 +243,4 @@ class SCA:
         # update uncovered set
         newCovered = set(combinations(sequence, self._strength))
         self.uncoveredSet -= newCovered
-        SCA.members.append(tuple(sequence))
         return tuple(sequence)

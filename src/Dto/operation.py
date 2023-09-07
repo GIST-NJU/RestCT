@@ -31,8 +31,6 @@ class Response:
 
 
 class Operation:
-    members = list()
-
     def __init__(self, url: str, method):
         self.url = url
         self.method: Method = Method(method)
@@ -41,8 +39,6 @@ class Operation:
         self.responseList: List[Response] = list()
 
         self.constraints = list()
-
-        Operation.members.append(self)
 
     # def genDomain(self, responseChain, okValues):
     #     paramList = list()
@@ -66,8 +62,8 @@ class Operation:
     def splittedUrl(self) -> Set[Tuple[str, int]]:
         return {(part, index) for index, part in enumerate(self.url.split("/"))}
 
-    def addConstraints(self, constraints: List[Constraint]):
-        self.constraints.extend(constraints)
+    def set_constraints(self, constraints: List[Constraint]):
+        self.constraints = constraints
 
     def __hash__(self):
         return hash(self.url + self.method.value)

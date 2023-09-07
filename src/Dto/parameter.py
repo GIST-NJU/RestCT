@@ -83,6 +83,7 @@ class ValueType(Enum):
     Example = "example"
     Random = "random"
     Dynamic = "dynamic"
+    Reused = "Reused"
     NULL = "Null"
 
 

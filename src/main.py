@@ -10,13 +10,13 @@ class Config:
         self.swagger = ""
 
         # operation sequence covering strength
-        self.s_strength = 0
+        self.s_strength = 2
 
         # all parameter covering strength
-        self.a_strength = 0
+        self.a_strength = 2
 
         # essential parameter covering strength
-        self.e_strength = 0
+        self.e_strength = 3
 
         # maximum of op_cover_strength
         self.MAX_OP_COVER_STRENGTH = 5
@@ -53,6 +53,9 @@ class Config:
 
         # data and log path
         self.dataPath = ""
+
+        # forwarding base url
+        self.forwarding_url = "http://localhost:8081"
 
     def checkAndPrehandling(self, settings: Namespace):
         curFile = Path(__file__)
@@ -135,6 +138,10 @@ class Config:
         if not dataPath.exists():
             dataPath.mkdir()
 
+        os.environ["dataPath"] = self.dataPath
+        os.environ["swagger"] = self.swagger
+        os.environ["patternFile"] = self.patterns
+
 
 if __name__ == "__main__":
     import sys
@@ -179,6 +186,9 @@ if __name__ == "__main__":
     parser.add_argument('--columnId',
                         help='experiment unique name for statistic data',
                         type=str, required=False, default="")
+    parser.add_argument('--forwardingURL',
+                        help='set if the forwarding proxy is running',
+                        type=str, required=False, default="")
 
     args = parser.parse_args()
 
@@ -186,6 +196,7 @@ if __name__ == "__main__":
     config.checkAndPrehandling(args)
 
     from src.restct import RestCT
+    from controller import RemoteController
 
     restCT = RestCT(config)
     restCT.run()
