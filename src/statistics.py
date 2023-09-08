@@ -4,7 +4,7 @@ from loguru import logger
 from src.openapiParser import parse
 from src.sca import SCA
 from typing import List, Tuple, Set
-from src.ca import CA, SendRequest
+from src.ca import CA, Executor
 from src.Dto.parameter import Example
 from itertools import combinations
 from src.Dto.operation import Operation
@@ -84,7 +84,7 @@ class Data:
         return len(CA.bugList)
 
     def getRestCallNumber(self):
-        return SendRequest.callNumber
+        return Executor.callNumber
 
     def getCost(self):
         """

@@ -8,8 +8,6 @@ from enum import Enum
 from datetime import datetime, timedelta
 from typing import Tuple, List, Union, Dict
 from src.Dto.keywords import Loc, ParamKey, DataType, DocKey
-from src.Exception.exceptions import UnsupportedError
-
 
 def buildParam(info: dict, definitions: dict, specifiedName: str = None):
     buildInfo = {
@@ -31,7 +29,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         elif DocKey.ALL_OF in info.keys() or DocKey.ANY_OF in info.keys() or DocKey.ONE_OF in info.keys() or DocKey.ADDITIONAL_PROPERTIES in info.keys():
             return None
         else:
-            raise UnsupportedError(info)
+            raise Exception(info)
         extraInfo.update(info)
         return buildParam(extraInfo, definitions, buildInfo.get("specifiedName"))
     elif paramEnum is not None:
@@ -66,7 +64,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         elif buildInfo["paramFormat"] is DataType.UUID:
             return UuidParam(**buildInfo)
         else:
-            raise UnsupportedError(info.__str__() + " is not taken into consideration")
+            raise Exception(info.__str__() + " is not taken into consideration")
     elif buildInfo["paramType"] is DataType.File:
         return FileParam(**buildInfo)
     elif buildInfo["paramType"] is DataType.Object:
@@ -74,7 +72,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         buildInfo["required"] = info.get("required", [])
         return ObjectParam.buildObject(buildInfo, definitions)
     else:
-        raise UnsupportedError(info.__str__() + " is not taken into consideration")
+        raise Exception(info.__str__() + " is not taken into consideration")
 
 
 class ValueType(Enum):
@@ -479,7 +477,7 @@ class ArrayParam(AbstractParam):
     def buildArray(cls, info, definitions):
         itemInfo: dict = info.pop(ParamKey.ITEMS, {})
         if len(itemInfo) == 0:
-            raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
+            raise Exception("{} can not be transferred to ArrayParam".format(info))
         elif ParamKey.TYPE in itemInfo.keys():
             itemParam = buildParam(itemInfo, definitions, "_item")
             # info["specifiedName"] = ""
@@ -495,7 +493,7 @@ class ArrayParam(AbstractParam):
             info["itemParam"] = itemParam
             return cls(**info)
         else:
-            raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
+            raise Exception("{} can not be transferred to ArrayParam".format(info))
 
     def seeAllParameters(self) -> List[AbstractParam]:
         allParameters = self._item.seeAllParameters()

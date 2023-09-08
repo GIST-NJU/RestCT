@@ -5,7 +5,6 @@ import requests
 import subprocess
 import shlex
 import chardet
-from main import Config
 from dataclasses import dataclass
 from src.Dto.keywords import Loc, DataType, Method
 from pathlib import Path
@@ -15,7 +14,6 @@ from src.Dto.constraint import Constraint, Processor
 from src.Dto.parameter import AbstractParam, ValueType
 from collections import defaultdict
 from loguru import logger
-from src.utils import singleton
 
 
 def _saveChain(responseChains: List[dict], chain: dict, opStr: str, response):
@@ -27,63 +25,61 @@ def _saveChain(responseChains: List[dict], chain: dict, opStr: str, response):
 
 
 class ACTS:
-    def __init__(self, dataPath, jar, domain_map, constraints: List[Constraint], strength: int):
+    def __init__(self, dataPath, jar):
         self._workplace = Path(dataPath) / "acts"
         self.jar = jar
         if not self._workplace.exists():
             self._workplace.mkdir()
 
-        self._domain_map = domain_map
-        self._paramNames = list(self._domain_map.keys())
-        self._constraints = constraints
-        self._strength = min(strength, len(domain_map.keys()))
-
-    def getId(self, paramName):
-        index = self._paramNames.index(paramName)
+    @staticmethod
+    def getId(paramName, paramNames):
+        index = paramNames.index(paramName)
         return "P" + str(index)
 
-    def getName(self, paramId: str):
+    @staticmethod
+    def getName(paramId: str, paramNames):
         index = int(paramId.lstrip("P"))
-        return self._paramNames[index]
+        return paramNames[index]
 
-    def transformConstraint(self, constraint: Constraint):
-        cStr = constraint.toActs(self._domain_map)
+    def transformConstraint(self, domain_map, paramNames, constraint: Constraint):
+        cStr = constraint.toActs(domain_map)
         if cStr is None:
             return ""
         for paramName in constraint.paramNames:
             pattern = r"\b" + paramName + r"\b"
-            paramId = self.getId(paramName)
+            paramId = self.getId(paramName, paramNames)
             cStr = re.sub(re.compile(pattern), paramId, cStr)
         return eval(cStr)
 
-    def writeInput(self) -> Path:
+    def writeInput(self, domain_map, paramNames, constraints, strength) -> Path:
         inputFile = self._workplace / "input.txt"
         with inputFile.open("w") as fp:
             fp.write(
                 "\n".join(
-                    ['[System]', '-- specify system name', 'Name: {}'.format("acts" + str(self._strength)), '',
+                    ['[System]', '-- specify system name', 'Name: {}'.format("acts" + str(strength)), '',
                      '[Parameter]', '-- general syntax is parameter_name(type): value1, value2...\n'])
             )
             # write parameter ids
-            for paramName, domain in self._domain_map.items():
-                fp.write("{}(int):{}\n".format(self.getId(paramName), ",".join([str(i) for i in range(len(domain))])))
+            for paramName, domain in domain_map.items():
+                fp.write("{}(int):{}\n".format(self.getId(paramName, paramNames),
+                                               ",".join([str(i) for i in range(len(domain))])))
 
             fp.write("\n")
             # write constraints
-            if len(self._constraints) > 0:
+            if len(constraints) > 0:
                 fp.write("[Constraint]\n")
-                for c in self._constraints:
-                    [fp.write(ts + "\n") for ts in self.transformConstraint(c)]
+                for c in constraints:
+                    [fp.write(ts + "\n") for ts in self.transformConstraint(domain_map, paramNames, c)]
 
         return inputFile
 
-    def callActs(self, inputFile) -> Path:
+    def callActs(self, strength: int, inputFile) -> Path:
         outputFile = self._workplace / "output.txt"
         jarPath = Path(self.jar)
         algorithm = "ipog"
 
         # acts 的文件路径不可以以"\"作为分割符，会被直接忽略，"\\"需要加上repr，使得"\\"仍然是"\\".
-        command = r'java -Dalgo={0} -Ddoi={1} -Doutput=csv -jar {2} {3} {4}'.format(algorithm, str(self._strength),
+        command = r'java -Dalgo={0} -Ddoi={1} -Doutput=csv -jar {2} {3} {4}'.format(algorithm, str(strength),
                                                                                     str(jarPath),
                                                                                     str(inputFile),
                                                                                     str(outputFile))
@@ -93,52 +89,48 @@ class ACTS:
         stdout.decode(encoding)
         return outputFile
 
-    def parseOutput(self, outputFile: Path):
+    def parseOutput(self, outputFile: Path, domain_map, paramNames):
         with outputFile.open("r") as fp:
             lines = [line.strip("\n") for line in fp.readlines() if "#" not in line and len(line.strip("\n")) > 0]
-        paramNames = [self.getName(paramId) for paramId in lines[0].strip("\n").split(",")]
+        paramNames = [self.getName(paramId, paramNames) for paramId in lines[0].strip("\n").split(",")]
         coverArray: List[Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]] = list()
         for line in lines[1:]:
             valueDict = dict()
             valueIndexList = line.strip("\n").split(",")
             for i, valueIndex in enumerate(valueIndexList):
-                valueDict[paramNames[i]] = self._domain_map[paramNames[i]][int(valueIndex)]
+                valueDict[paramNames[i]] = domain_map[paramNames[i]][int(valueIndex)]
             coverArray.append(valueDict)
 
         return coverArray
 
-    def main(self):
-        inputFile = self.writeInput()
-        outputFile = self.callActs(inputFile)
-        return self.parseOutput(outputFile)
+    def process(self, domain_map, constraints: List[Constraint], strength: int):
+        strength = min(strength, len(domain_map.keys()))
+        paramNames = list(domain_map.keys())
+        inputFile = self.writeInput(domain_map, paramNames, constraints, strength)
+        outputFile = self.callActs(strength, inputFile)
+        return self.parseOutput(outputFile, domain_map, paramNames)
 
 
-class SendRequest:
-    callNumber = 0
+class Executor:
+    def __init__(self, queryAuth, headerAuth, manager):
+        self._auth = None if len(queryAuth) == 0 and len(headerAuth) == 0 else Auth(headerAuth, queryAuth)
+        self._manager = manager
 
-    def __init__(self, operation: Operation, coverArray: List[Dict[str, Tuple[ValueType, object]]], responses,
-                 queryAuth, headerAuth):
-        self._operation: Operation = operation
-        self._coverArray = coverArray
-        self._responses = responses
+    def process(self, operation, ca_item, previous_responses) -> Tuple[int, object]:
+        """
+        Executor的任务只有发送请求，不处理CA相关的东西
+        @param operation: the target operation
+        @param ca_item: assignment
+        @param previous_responses: the chain
+        @return: status code and response info
+        """
+        self.setParamValue(operation, ca_item)
+        kwargs = self.assemble(operation, previous_responses)
+        return self.send(**kwargs)
 
-        self.queryAuth = queryAuth
-        self.headerAuth = headerAuth
-
-    def main(self) -> Tuple[list, list]:
-        statusCodes = list()
-        responses = list()
-        for case in self._coverArray:
-            self.setParamValue(case)
-            p = self._operation.parameterList
-            kwargs = self.assemble()
-            statusCode, response = self.send(**kwargs)
-            statusCodes.append(statusCode)
-            responses.append(response)
-        return statusCodes, responses
-
-    def assemble(self) -> dict:
-        url = self._operation.url
+    @staticmethod
+    def assemble(operation, responses) -> dict:
+        url = operation.url
         headers = {
             'Content-Type': 'application/json',
             'user-agent': 'my-app/0.0.1'
@@ -148,8 +140,8 @@ class SendRequest:
         formData = dict()
         body = dict()
 
-        for p in self._operation.parameterList:
-            value = p.printableValue(self._responses)
+        for p in operation.parameterList:
+            value = p.printableValue(responses)
             if value is None:
                 if p.loc is Loc.Path:
                     url = url.replace("{" + p.name + "}", str("abc"))
@@ -177,8 +169,6 @@ class SendRequest:
                 else:
                     raise Exception("unexpected Param Loc Type: {}".format(p.name))
 
-        params.update(self.queryAuth)
-
         kwargs = dict()
         kwargs["url"] = url
         kwargs["headers"] = headers
@@ -192,22 +182,23 @@ class SendRequest:
             kwargs["data"] = json.dumps(body)
         return kwargs
 
-    def setParamValue(self, case: Dict[str, Tuple[ValueType, object]]):
+    @staticmethod
+    def setParamValue(operation, case):
         # parameters: List[AbstractParam] = self._operation.genDomain(dict(), dict())
-        for p in self._operation.parameterList:
+        for p in operation.parameterList:
             p.value = p.getValueDto(case)
 
-    def send(self, **kwargs) -> Tuple[int, Union[str, dict, None]]:
-        SendRequest.callNumber += 1
+    def send(self, operation, **kwargs) -> Tuple[int, Union[str, dict, None]]:
+        self._manager.register_request()
 
         # for k, v in kwargs.items():
         #     logger.debug("{}: {}", k, v)
 
         try:
-            feedback = getattr(requests, self._operation.method.value.lower())(**kwargs, timeout=50,
-                                                                               auth=Auth(self.headerAuth))
+            feedback = getattr(requests, operation.method.value.lower())(**kwargs, timeout=50,
+                                                                               auth=self._auth)
         except TypeError:
-            raise Exception("request type error: {}".format(self._operation.method.value.lower()))
+            raise Exception("request type error: {}".format(operation.method.value.lower()))
         except requests.exceptions.Timeout:
             return 700, "timeout"
         except requests.exceptions.TooManyRedirects:
@@ -227,12 +218,15 @@ class SendRequest:
 
 
 class Auth:
-    def __init__(self, headerAuth):
+    def __init__(self, headerAuth, queryAuth):
         self.headerAuth = headerAuth
+        self.queryAuth = queryAuth
 
     def __call__(self, r):
         for key, token in self.headerAuth.items():
             r.headers[key] = token
+        for key, token in self.queryAuth.items():
+            r.params[key] = token
         return r
 
 
@@ -243,9 +237,10 @@ class Value:
     type: DataType = DataType.NULL
 
 
-@singleton
 class RuntimeInfoManager:
     def __init__(self):
+        self._num_of_requests = 0
+
         self._ok_value_dict: Dict[str, List[Tuple[ValueType, object]]] = defaultdict(list)
         self._reused_essential_seq_dict: Dict[Tuple[Operation], List[Dict[str, Value]]] = defaultdict(list)
         self._reused_all_p_seq_dict: dict = defaultdict(list)
@@ -265,11 +260,21 @@ class RuntimeInfoManager:
             return [{p: Value(v.val, ValueType.Reused, v.type) for p, v in case.items()} for case in reused_case]
         return []
 
+    def get_reused_with_all_p(self, operations: Tuple[Operation]):
+        reused_case = self._reused_all_p_seq_dict.get(operations, list())
+        if len(reused_case) > 0:
+            return [{p: Value(v.val, ValueType.Reused, v.type) for p, v in case.items()} for case in reused_case]
+        return
+
     def get_ok_value_dict(self):
         return self._ok_value_dict
 
     def is_unresolved(self, p_name):
         return p_name in self._unresolved_params
+
+    def register_request(self):
+        self._num_of_requests += 1
+
 
 class CA:
     # value used in success http calls. key: operation._repr_+paramName
@@ -284,10 +289,7 @@ class CA:
     # successSet: Set = set()
 
     def __init__(self, data_path, acts_jar, a_strength, e_strength, **kwargs):
-        self.dataPath = data_path
-        self.jar = acts_jar
-        self.headerAuth = kwargs.get("header")
-        self.queryAuth = kwargs.get("query")
+
         # response chain
         self._maxChainItems = 3
         # idCount: delete created resource
@@ -298,34 +300,100 @@ class CA:
 
         ######### refactored code ###########
         self._manager = RuntimeInfoManager()
+        self._acts = ACTS(data_path, acts_jar)
+        self._executor = Executor(self._manager)
 
     def _select_response_chains(self, response_chains):
         """get _maxChainItems longest chains"""
         sortedList = sorted(response_chains, key=lambda c: len(c.keys()), reverse=True)
         return sortedList[:self._maxChainItems] if self._maxChainItems < len(sortedList) else sortedList
 
-    def _handle_one_operation(self, operation: Operation, chain: dict, success_url_tuple: tuple):
-        operation.set_constraints(self._reset_constraints(operation.parameterList))
+    def _executes(self, operation, e_ca, chain):
+        response_list: List[(int, object)] = []
+        for case in e_ca:
+            status_code, response = self._executor.process(operation, case, chain)
+            response_list.append((status_code, response))
+
+        self._handle_feedback(operation, response_list, chain, e_ca)
+
+    def _handle_feedback(self, operation, response_list, chain, e_ca):
+        # todo: zhenyu refactor _handleFeedback (line 518)
+        for sc, response in response_list.items():
+            if sc < 300:
+                self._manager._save_reuse()
+                self._manager._save_ok_value()
+                self._save_chain()
+
+
+    def _handle_one_operation(self, index, operation: Operation, chain: dict, sequence):
+        self._reset_constraints(operation, operation.parameterList)
+
+        e_ca = self._handle_essential_params()
+        logger.info("{}-th operation essential parameters covering array size: {}, parameters: {}, "
+                    "constraints: {}".format(index / len(sequence), len(e_ca), len(e_ca[0]),
+                                             len(operation.constraints)))
+
+        statusCodes, responses = self._executes(operation, e_ca, chain)
+        logger.info(f"Status Code: {statusCodes}")
 
         self._cover_essential_params()
 
-    def _cover_essential_params(self, op_repr, parameters, constraints,  previous_executed_url, chain):
-        reused_case = self._manager.get_reused_with_essential_p(previous_executed_url)
+    def _handle_essential_params(self, operation, exec_ops, chain):
+        reused_case = self._manager.get_reused_with_essential_p(exec_ops + [operation])
         if len(reused_case) > 0:
             # 执行过
             logger.debug("        use reuseSeq info: {}, parameters: {}", len(reused_case), len(reused_case[0].keys()))
             return reused_case
 
+        return self._cover_params(operation, operation.parameterList, operation.constraints, chain)
+
+    def _handle_all_params(self, operation, exec_ops, chain, history):
+        reused_case = self._manager.get_reused_with_all_p(exec_ops + [operation])
+        if len(reused_case) > 0:
+            # 执行过
+            logger.debug("        use reuseSeq info: {}, parameters: {}", len(reused_case), len(reused_case[0].keys()))
+            return reused_case
+
+        return self._cover_params(operation, operation.parameterList, operation.constraints, chain, history)
+
+    def _cover_params(self, operation, parameters, constraints, chain, history: List[dict] = None):
+        """
+        generate domain for each parameter of the current operation
+        @param history: executed essential params
+        @param operation: the target operation
+        @param parameters: parameter list
+        @param constraints: the constraints among parameters
+        @param chain: a response chain
+        @return: the parameters and their domains
+        """
+
+        if history is None:
+            history = []
         essential_p_list = list(filter(lambda p: p.isEssential, parameters))
         if len(essential_p_list) == 0:
             return []
 
         domain_map = defaultdict(list)
         for root_p in essential_p_list:
-            p_with_children = root_p.genDomain(op_repr, chain, self._manager.get_ok_value_dict())
+            p_with_children = root_p.genDomain(operation.__repr__, chain, self._manager.get_ok_value_dict())
             for p in p_with_children:
-                if not self._manager.is_unresolved(op_repr + p.name):
+                if not self._manager.is_unresolved(operation.__repr__ + p.name):
                     domain_map[p.getGlobalName()] = p.domain
+
+        if history is not None and len(history) > 0:
+            new_domain_map = {
+                "successEssentialCases": [Value(v, ValueType.Null, DataType.Int32) for v in range(len(history))]}
+
+            for p in domain_map.keys():
+                if p not in history[0].keys():
+                    new_domain_map[p] = domain_map.get(p)
+
+            for c in operation.constraints:
+                for p in c.paramNames:
+                    if self._manager.is_unresolved(p):
+                        return dict()
+
+            domain_map = new_domain_map
 
         for p, v in domain_map.items():
             logger.debug(f"            {p}: {len(v)} - {v}")
@@ -335,14 +403,11 @@ class CA:
     def _call_acts(self, domain_map, constraints, strength):
         try:
             # todo: 不应该新建类
-            acts = ACTS(self.dataPath, self.jar, domain_map, constraints, strength
+            acts = ACTS(self.dataPath, self.jar, domain_map, constraints, strength)
         except Exception:
             return [{}]
         else:
-            return acts.main()
-
-    def _cover_all_parameters(self, operation, previous_executed_, constraints):
-
+            return acts.process()
 
     @staticmethod
     def _timeout(start_time, budget):
@@ -356,6 +421,7 @@ class CA:
 
     def handle(self, sequence: Tuple[Operation], budget, start_time) -> bool:
         response_chains: List[Dict[str, object]] = [dict()]
+        reused_essential =
 
         for i, operation in enumerate(sequence):
             logger.debug("{}-th operation: {}*{}", i + 1, operation.method.value, operation.url)
@@ -375,8 +441,8 @@ class CA:
                 logger.info("{}-th operation essential parameters covering array size: {}, parameters: {}, "
                             "constraints: {}".format(i + 1, len(coverArray), len(coverArray[0]),
                                                      len(operation.constraints)))
-                essentialSender = SendRequest(operation, coverArray, chain, self.queryAuth, self.headerAuth)
-                statusCodes, responses = essentialSender.main()
+                essentialSender = Executor(operation, coverArray, chain, self.queryAuth, self.headerAuth)
+                statusCodes, responses = essentialSender.process()
                 logger.info("Status code: {}".format(statusCodes))
                 self._handleFeedback(_responseChains, chain, operation, statusCodes, responses, coverArray,
                                      successUrlTuple, False)
@@ -398,8 +464,8 @@ class CA:
                                                                                                                 coverArray[
                                                                                                                     0])))
                 logger.info("*" * 100)
-                allSender = SendRequest(operation, coverArray, chain, self.queryAuth, self.headerAuth)
-                statusCodes, responses = allSender.main()
+                allSender = Executor(operation, coverArray, chain, self.queryAuth, self.headerAuth)
+                statusCodes, responses = allSender.process()
                 logger.info("Status code: {}".format(statusCodes))
                 self._handleFeedback(_responseChains, chain, operation, statusCodes, responses, coverArray,
                                      successUrlTuple, True)
@@ -552,7 +618,7 @@ class CA:
             except Exception:
                 return [{}]
             else:
-                return acts.main()
+                return acts.process()
 
     def genAllParamsCase(self, operation, urlTuple, chain) -> List[
         Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]]:
@@ -596,7 +662,7 @@ class CA:
                 logger.debug("            {}: {} - {}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
 
             acts = ACTS(self.dataPath, self.jar, paramNames, domains, operation.constraints, self._aStrength)
-            actsOutput = acts.main()
+            actsOutput = acts.process()
             for case in actsOutput:
                 if "successEssentialCases" in case.keys():
                     successIndex = case.pop("successEssentialCases")[1]
