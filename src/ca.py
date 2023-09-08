@@ -196,7 +196,7 @@ class Executor:
 
         try:
             feedback = getattr(requests, operation.method.value.lower())(**kwargs, timeout=50,
-                                                                               auth=self._auth)
+                                                                         auth=self._auth)
         except TypeError:
             raise Exception("request type error: {}".format(operation.method.value.lower()))
         except requests.exceptions.Timeout:
@@ -244,6 +244,8 @@ class RuntimeInfoManager:
         self._ok_value_dict: Dict[str, List[Tuple[ValueType, object]]] = defaultdict(list)
         self._reused_essential_seq_dict: Dict[Tuple[Operation], List[Dict[str, Value]]] = defaultdict(list)
         self._reused_all_p_seq_dict: dict = defaultdict(list)
+        self._response_chains: List[dict] = list()
+        self._id_counter: list = list()
         self._bug_list: list = list()
         self._success_sequence: set = set()
         self._unresolved_params: Set[Tuple[Operation, str]] = set()
@@ -275,6 +277,76 @@ class RuntimeInfoManager:
     def register_request(self):
         self._num_of_requests += 1
 
+    def save_reuse(self, url_tuple, is_essential, case):
+        if is_essential:
+            to_dict = self._reused_essential_seq_dict
+        else:
+            to_dict = self._reused_all_p_seq_dict
+        if len(to_dict[url_tuple]) < 10:
+            to_dict[url_tuple].append(case)
+
+    def save_ok_value(self, case):
+        for paramStr, value in case.items():
+            if paramStr not in self._ok_value_dict.keys():
+                self._ok_value_dict[paramStr].append(value)
+            else:
+                lst = self._ok_value_dict.get(paramStr)
+                value_list = [v for _, v in lst]
+                if len(lst) < 10 and value[1] not in value_list:
+                    lst.append(value)
+                else:
+                    type_set = {t for t, _ in lst}
+                    if value[0] not in type_set:
+                        lst.append(value)
+
+    def save_chain(self, chain, operation, response):
+        new_chain = chain.copy()
+        new_chain[operation] = response
+        self._response_chains.append(new_chain)
+        if len(self._response_chains) > 10:
+            self._response_chains.pop(0)
+
+    def save_id_count(self, operation, response):
+        if isinstance(response, dict):
+            iid = response.get("id")
+            try:
+                self._id_counter.append((iid, operation.url))
+            except TypeError:
+                pass
+        elif isinstance(response, list):
+            for r in response:
+                iid = r.get("id")
+                try:
+                    self._id_counter.append((int(iid), operation.url))
+                except TypeError:
+                    pass
+        else:
+            pass
+
+    def save_bug(self, operation, case, sc, response, chain, data_path):
+        op_str_set = {d.get("method") + d.get("url") + str(d.get("statusCode")) for d in self._bug_list}
+        if operation.method + operation.url + str(sc) in op_str_set:
+            return
+        bug_info = {
+            "url": operation.url,
+            "method": operation.method,
+            "parameters": {paramName: (vt.value, v) for paramName, (vt, v) in parameters.items()},
+            "statusCode": sc,
+            "response": response,
+            "responseChain": chain
+        }
+        self._bug_list.append(bug_info)
+
+        folder = Path(data_path) / "bug/"
+        if not folder.exists():
+            folder.mkdir(parents=True)
+        bugFile = folder / "bug_{}.json".format(str(len(op_str_set)))
+        with bugFile.open("w") as fp:
+            json.dump(bug_info, fp)
+
+    def save_success_seq(self, url_tuple):
+        self._success_sequence.add(url_tuple)
+
 
 class CA:
     # value used in success http calls. key: operation._repr_+paramName
@@ -303,42 +375,67 @@ class CA:
         self._acts = ACTS(data_path, acts_jar)
         self._executor = Executor(self._manager)
 
+        self._data_path = data_path
+
     def _select_response_chains(self, response_chains):
         """get _maxChainItems longest chains"""
         sortedList = sorted(response_chains, key=lambda c: len(c.keys()), reverse=True)
         return sortedList[:self._maxChainItems] if self._maxChainItems < len(sortedList) else sortedList
 
-    def _executes(self, operation, e_ca, chain):
+    def _executes(self, operation, ca, chain, url_tuple, is_essential=True):
         response_list: List[(int, object)] = []
-        for case in e_ca:
+        for case in ca:
             status_code, response = self._executor.process(operation, case, chain)
             response_list.append((status_code, response))
 
-        self._handle_feedback(operation, response_list, chain, e_ca)
+        self._handle_feedback(url_tuple, operation, response_list, chain, ca, is_essential)
 
-    def _handle_feedback(self, operation, response_list, chain, e_ca):
-        # todo: zhenyu refactor _handleFeedback (line 518)
-        for sc, response in response_list.items():
+    def _handle_feedback(self, url_tuple, operation, response_list, chain, ca, is_essential):
+        is_success = False
+        for index, (sc, response) in enumerate(response_list):
             if sc < 300:
-                self._manager._save_reuse()
-                self._manager._save_ok_value()
-                self._save_chain()
-
+                self._manager.save_reuse(url_tuple, is_essential, ca[index])
+                self._manager.save_ok_value(ca[index])
+                self._manager.save_chain(chain, operation, response)
+                is_success = True
+            if operation.method is Method.POST and sc < 300:
+                self._manager.save_id_count(operation, response)
+            if sc in range(500, 600):
+                self._manager.save_bug(operation, ca[index], sc, response, chain, self._data_path)
+                is_success = True
+        if is_success:
+            self._manager.save_success_seq(url_tuple)
 
     def _handle_one_operation(self, index, operation: Operation, chain: dict, sequence):
         self._reset_constraints(operation, operation.parameterList)
+        success_url_tuple = tuple([op for op in sequence[:index] if op in chain.keys()] + [operation])
 
-        e_ca = self._handle_essential_params()
+        e_ca = self._handle_essential_params(operation, sequence[:index], chain)
         logger.info("{}-th operation essential parameters covering array size: {}, parameters: {}, "
                     "constraints: {}".format(index / len(sequence), len(e_ca), len(e_ca[0]),
                                              len(operation.constraints)))
 
-        statusCodes, responses = self._executes(operation, e_ca, chain)
-        logger.info(f"Status Code: {statusCodes}")
+        self._executes(operation, e_ca, chain, success_url_tuple)
 
-        self._cover_essential_params()
+        if all([p.isEssential for p in operation.parameterList]):
+            return
+
+        # todo history is not None, add return values of executes
+        a_ca = self._handle_all_params(operation, sequence[:index], chain, history=None)
+        logger.info("{}-th operation essential parameters covering array size: {}, parameters: {}, "
+                    "constraints: {}".format(index / len(sequence), len(a_ca), len(a_ca[0]),
+                                             len(operation.constraints)))
+
+        self._executes(operation, a_ca, chain, False)
 
     def _handle_essential_params(self, operation, exec_ops, chain):
+        """
+
+        :param operation:
+        :param exec_ops: sequence[:i]
+        :param chain:
+        :return:
+        """
         reused_case = self._manager.get_reused_with_essential_p(exec_ops + [operation])
         if len(reused_case) > 0:
             # 执行过
