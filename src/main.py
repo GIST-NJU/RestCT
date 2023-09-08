@@ -55,7 +55,8 @@ class Config:
         self.dataPath = ""
 
         # forwarding base url
-        self.forwarding_url = "http://localhost:8081"
+        # self.forwarding_url = "http://localhost:8081"
+        self.forwarding_url = None
 
     def checkAndPrehandling(self, settings: Namespace):
         curFile = Path(__file__)

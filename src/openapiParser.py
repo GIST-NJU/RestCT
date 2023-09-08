@@ -12,12 +12,12 @@ from src.Dto.operation import Response
 class Parser:
     def __init__(self, logger, **kwargs):
         """
-        @param: forward_url, only if the forwarding proxy is running
+        @param: forwarding_url, only if the forwarding proxy is running
         """
         self._logger = logger
         self._url_prefix = ""
         self._definitions = None
-        self._forward_url = kwargs.get("forward_url", None)
+        self._forwarding_url = kwargs.get("forwarding_url", None)
 
         self.operations = list()
 
@@ -57,8 +57,8 @@ class Parser:
         host = spec.get(DocKey.HOST, "")
         base_path = "{}://{}/{}".format(protocol, host.strip("/"), baseurl.strip("/"))
 
-        if self._forward_url is not None and len(self._forward_url) == 0:
-            base_path = self._forward_url.rstrip('/') + "/" + urlparse(base_path).path.lstrip('/')
+        if self._forwarding_url is not None and len(self._forwarding_url) == 0:
+            base_path = self._forwarding_url.rstrip('/') + "/" + urlparse(base_path).path.lstrip('/')
 
         return base_path
 

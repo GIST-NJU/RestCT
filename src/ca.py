@@ -244,8 +244,7 @@ class RuntimeInfoManager:
         self._ok_value_dict: Dict[str, List[Tuple[ValueType, object]]] = defaultdict(list)
         self._reused_essential_seq_dict: Dict[Tuple[Operation], List[Dict[str, Value]]] = defaultdict(list)
         self._reused_all_p_seq_dict: dict = defaultdict(list)
-        self._response_chains: List[dict] = list()
-        self._id_counter: list = list()
+        self._response_chains: List[Dict[str, object]] = [dict()]
         self._bug_list: list = list()
         self._success_sequence: set = set()
         self._unresolved_params: Set[Tuple[Operation, str]] = set()
@@ -306,18 +305,18 @@ class RuntimeInfoManager:
         if len(self._response_chains) > 10:
             self._response_chains.pop(0)
 
-    def save_id_count(self, operation, response):
+    def save_id_count(self, operation, response, id_counter):
         if isinstance(response, dict):
             iid = response.get("id")
             try:
-                self._id_counter.append((iid, operation.url))
+                id_counter.append((iid, operation.url))
             except TypeError:
                 pass
         elif isinstance(response, list):
             for r in response:
                 iid = r.get("id")
                 try:
-                    self._id_counter.append((int(iid), operation.url))
+                    id_counter.append((int(iid), operation.url))
                 except TypeError:
                     pass
         else:
@@ -330,7 +329,7 @@ class RuntimeInfoManager:
         bug_info = {
             "url": operation.url,
             "method": operation.method,
-            "parameters": {paramName: (vt.value, v) for paramName, (vt, v) in parameters.items()},
+            "parameters": {paramName: (vt.value, v) for paramName, (vt, v) in case.items()},
             "statusCode": sc,
             "response": response,
             "responseChain": chain
@@ -346,6 +345,10 @@ class RuntimeInfoManager:
 
     def save_success_seq(self, url_tuple):
         self._success_sequence.add(url_tuple)
+
+    def get_chains(self, maxChainItems):
+        sortedList = sorted(self._response_chains, key=lambda c: len(c.keys()), reverse=True)
+        return sortedList[:maxChainItems] if maxChainItems < len(sortedList) else sortedList
 
 
 class CA:
@@ -365,7 +368,7 @@ class CA:
         # response chain
         self._maxChainItems = 3
         # idCount: delete created resource
-        self._idCounter: List[(int, str)] = list()
+        self._id_counter: List[(int, str)] = list()
 
         self._aStrength = a_strength  # cover strength for all parameters
         self._eStrength = e_strength  # cover strength for essential parameters
@@ -373,9 +376,10 @@ class CA:
         ######### refactored code ###########
         self._manager = RuntimeInfoManager()
         self._acts = ACTS(data_path, acts_jar)
-        self._executor = Executor(self._manager)
+        self._executor = Executor(kwargs.get("query_auth"), kwargs.get("header_auth"), self._manager)
 
         self._data_path = data_path
+        self._start_time = time.time()
 
     def _select_response_chains(self, response_chains):
         """get _maxChainItems longest chains"""
@@ -399,7 +403,7 @@ class CA:
                 self._manager.save_chain(chain, operation, response)
                 is_success = True
             if operation.method is Method.POST and sc < 300:
-                self._manager.save_id_count(operation, response)
+                self._manager.save_id_count(operation, response, self._id_counter)
             if sc in range(500, 600):
                 self._manager.save_bug(operation, ca[index], sc, response, chain, self._data_path)
                 is_success = True
@@ -516,252 +520,20 @@ class CA:
         constraints: List[Constraint] = constraint_processor.parse()
         operation.set_constraints(constraints)
 
-    def handle(self, sequence: Tuple[Operation], budget, start_time) -> bool:
-        response_chains: List[Dict[str, object]] = [dict()]
-        reused_essential =
-
-        for i, operation in enumerate(sequence):
-            logger.debug("{}-th operation: {}*{}", i + 1, operation.method.value, operation.url)
-            chainList = self._select_response_chains(response_chains)
-
-            previous_executed_ops = tuple(sequence[:i])
-
-            for chain in chainList:
-                if self._timeout(start_time, budget):
-                    return False
-                previous_success_ops = tuple([op for op in previous_executed_ops if op in chain.keys()])
-
-                self._reset_constraints(operation, operation.parameterList)
-
-                coverArray: List[Dict[str, Tuple[ValueType, object]]] = self.genEssentialParamsCase(operation, urlTuple,
-                                                                                                    chain)
-                logger.info("{}-th operation essential parameters covering array size: {}, parameters: {}, "
-                            "constraints: {}".format(i + 1, len(coverArray), len(coverArray[0]),
-                                                     len(operation.constraints)))
-                essentialSender = Executor(operation, coverArray, chain, self.queryAuth, self.headerAuth)
-                statusCodes, responses = essentialSender.process()
-                logger.info("Status code: {}".format(statusCodes))
-                self._handleFeedback(_responseChains, chain, operation, statusCodes, responses, coverArray,
-                                     successUrlTuple, False)
-                eSuccessCodes = set(filter(lambda code: code in range(200, 300), statusCodes))
-                bugCodes = set(filter(lambda code: code in range(500, 600), statusCodes))
-                if len(eSuccessCodes) > 0:
-                    self._saveSuccessSeq(successUrlTuple)
-                elif len(bugCodes) > 0:
-                    self._saveSuccessSeq(successUrlTuple)
-                else:
-                    pass
-
-                coverArray: List[Dict[str, Tuple[ValueType, object]]] = self.genAllParamsCase(operation, urlTuple,
-                                                                                              chain)
-                logger.info(
-                    "        {}-th operation all parameters covering array size: {}, parameters: {}".format(i + 1,
-                                                                                                            len(coverArray),
-                                                                                                            len(
-                                                                                                                coverArray[
-                                                                                                                    0])))
-                logger.info("*" * 100)
-                allSender = Executor(operation, coverArray, chain, self.queryAuth, self.headerAuth)
-                statusCodes, responses = allSender.process()
-                logger.info("Status code: {}".format(statusCodes))
-                self._handleFeedback(_responseChains, chain, operation, statusCodes, responses, coverArray,
-                                     successUrlTuple, True)
-
-                successCodes = set(filter(lambda c: c in range(200, 300), statusCodes))
-                bugCodes = set(filter(lambda c: c in range(500, 600), statusCodes))
-                if len(successCodes) > 0:
-                    self._saveSuccessSeq(successUrlTuple)
-                    break
-                elif len(bugCodes) > 0:
-                    self._saveSuccessSeq(successUrlTuple)
-                    break
-                else:
-                    if len(eSuccessCodes) == 0:
-                        errorResponses = [responses[j] for j, sc in enumerate(statusCodes) if sc in range(400, 500)]
-                        unresolvedParamList = processor.analyseError(errorResponses)
-                        for up in unresolvedParamList:
-                            if operation.__repr__() + up not in self._unresolvedParam:
-                                self._unresolvedParam.add(operation.__repr__() + up)
-                                removedCons = list()
-                                for c in operation.constraints:
-                                    if up in c.paramNames:
-                                        removedCons.append(c)
-                                for rc in removedCons:
-                                    operation.constraints.remove(rc)
-                                break
-        logger.info("   unresolved parameters: {}".format(self._unresolvedParam))
-        self.clearUp()
-        return True
-
-    @staticmethod
-    def _saveSuccessSeq(successUrlTuple):
-        CA.successSet.add(successUrlTuple)
-
-    def clearUp(self):
-        # clean resource created
-        for iid, url in self._idCounter:
-            resourceId = url.rstrip("/") + "/" + str(iid)
+    def clear_up(self):
+        for iid, url in self._id_counter:
+            resource_id = url.rstrip("/") + "/" + str(iid)
             try:
-                requests.delete(url=resourceId, auth=Auth(self.headerAuth))
+                requests.delete(url=resource_id, auth=Auth())
             except Exception:
                 continue
 
-        # save unresolved parameters
-        filePath = Path(self.dataPath) / "unresolvedParams.json"
-        with filePath.open("w") as fp:
-            data = {"unresolvedParams": list(self._unresolvedParam)}
-            json.dump(data, fp)
-
-    def _handleFeedback(self, responseChains, chain, operation, statusCodes, responses, coverArray, urlTuple, isAll):
-        for index, sc in enumerate(statusCodes):
-            if sc < 300:
-                CA._saveReuse(coverArray[index], urlTuple, isAll)
-                CA._saveOkValue(operation.__repr__(), coverArray[index])
-                _saveChain(responseChains, chain, operation.__repr__(), responses[index])
-            if operation.method is Method.POST and sc < 300:
-                self._saveIdCount(operation, responses[index])
-            if sc in range(500, 600):
-                self._saveBug(operation.url, operation.method.value, coverArray[index], sc, responses[index], chain)
-
-    def _saveIdCount(self, operation, response):
-        if isinstance(response, dict):
-            iid = response.get("id")
-            try:
-                self._idCounter.append((iid, operation.url))
-            except TypeError:
-                pass
-        elif isinstance(response, list):
-            for r in response:
-                iid = r.get("id")
-                try:
-                    self._idCounter.append((int(iid), operation.url))
-                except TypeError:
-                    pass
-        else:
-            pass
-
-    def _saveBug(self, url: str, method: str, parameters: dict, statusCode: int, response: Union[list, dict, str],
-                 chain: dict):
-        opStrSet = {d.get("method") + d.get("url") + str(d.get("statusCode")) for d in CA.bugList}
-        if method + url + str(statusCode) in opStrSet:
-            return
-        bugInfo = {
-            "url": url,
-            "method": method,
-            "parameters": {paramName: (vt.value, v) for paramName, (vt, v) in parameters.items()},
-            "statusCode": statusCode,
-            "response": response,
-            "responseChain": chain
-        }
-        CA.bugList.append(bugInfo)
-
-        # save to json
-        folder = Path(self.dataPath) / "bug/"
-        if not folder.exists():
-            folder.mkdir(parents=True)
-        bugFile = folder / "bug_{}.json".format(str(len(opStrSet)))
-        with bugFile.open("w") as fp:
-            json.dump(bugInfo, fp)
-
-    @staticmethod
-    def _saveReuse(case, urlTuple, isAll):
-        if isAll:
-            toDict = CA.reuseAllSeqDict
-        else:
-            toDict = CA.reuseEssentialSeqDict
-        if len(toDict[urlTuple]) < 10:
-            toDict[urlTuple].append(case)
-
-    @staticmethod
-    def _saveOkValue(opStr, case):
-        for paramStr, value in case.items():
-            paramId = opStr + paramStr
-            if paramId not in CA.okValueDict.keys():
-                CA.okValueDict[paramId].append(value)
-            else:
-                lst = CA.okValueDict.get(paramId)
-                valueList = [v for _, v in lst]
-                if len(lst) < 10 and value[1] not in valueList:
-                    lst.append(value)
-                else:
-                    typeSet = {t for t, _ in lst}
-                    if value[0] not in typeSet:
-                        lst.append(value)
-
-    def genEssentialParamsCase(self, operation, urlTuple, chain) -> List[
-        Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]]:
-        essentialParamList: List[AbstractParam] = list(filter(lambda p: p.isEssential, operation.parameterList))
-        if len(essentialParamList) == 0:
-            return [{}]
-
-        reuseSeq = CA.reuseEssentialSeqDict.get(urlTuple, list())
-
-        if len(reuseSeq):
-            # 执行过
-            logger.debug("        use reuseSeq info: {}, parameters: {}", len(reuseSeq), len(reuseSeq[0].keys()))
-            return reuseSeq
-        else:
-            paramList: List[AbstractParam] = list()
-            for p in essentialParamList:
-                paramList.extend(p.genDomain(operation.__repr__(), chain, CA.okValueDict))
-            paramNames = [p.getGlobalName() for p in paramList if
-                          operation.__repr__() + p.name not in self._unresolvedParam]
-            domains = [p.domain for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
-            logger.debug("        generate new domains...")
-            for i, p in enumerate(paramNames):
-                logger.debug("            {}: {} - {}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
-            try:
-                acts = ACTS(self.dataPath, self.jar, paramNames, domains, operation.constraints, self._eStrength)
-            except Exception:
-                return [{}]
-            else:
-                return acts.process()
-
-    def genAllParamsCase(self, operation, urlTuple, chain) -> List[
-        Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]]:
-        allParamList = operation.parameterList
-        if len(allParamList) == 0:
-            return [{}]
-
-        reuseSeq = CA.reuseAllSeqDict.get(urlTuple, list())
-        if len(reuseSeq):
-            # 执行过
-            logger.debug("        use reuseSeq info: {}, parameters: {}", len(reuseSeq), len(reuseSeq[0].keys()))
-            return reuseSeq
-        else:
-            paramList: List[AbstractParam] = list()
-            for p in allParamList:
-                paramList.extend(p.genDomain(operation.__repr__(), chain, CA.okValueDict))
-            paramNames = [p.getGlobalName() for p in paramList if
-                          operation.__repr__() + p.name not in self._unresolvedParam]
-            domains = [p.domain for p in paramList if operation.__repr__() + p.name not in self._unresolvedParam]
-
-            successEssentialCases = CA.reuseEssentialSeqDict.get(urlTuple, list())
-            if len(successEssentialCases) > 0:
-                newParamNames = list()
-                newDomains = list()
-                newParamNames.append("successEssentialCases")
-                newDomains.append([(ValueType.NULL, i) for i in range(len(successEssentialCases))])
-                for i, p in enumerate(paramNames):
-                    if p not in successEssentialCases[0].keys():
-                        newParamNames.append(p)
-                        newDomains.append(domains[i])
-                paramNames = newParamNames
-                domains = newDomains
-
-                for c in operation.constraints:
-                    for p in c.paramNames:
-                        if p in self._unresolvedParam:
-                            return [{}]
-
-            logger.debug("        generate new domains...")
-            for i, p in enumerate(paramNames):
-                logger.debug("            {}: {} - {}", p, len(domains[i]), set([item[0].value for item in domains[i]]))
-
-            acts = ACTS(self.dataPath, self.jar, paramNames, domains, operation.constraints, self._aStrength)
-            actsOutput = acts.process()
-            for case in actsOutput:
-                if "successEssentialCases" in case.keys():
-                    successIndex = case.pop("successEssentialCases")[1]
-                    case.update(successEssentialCases[successIndex])
-            return actsOutput
+    def handle(self, sequence, budget):
+        for index, operation in enumerate(sequence):
+            logger.debug("{}-th operation: {}*{}", index + 1, operation.method.value, operation.url)
+            chainList = self._manager.get_chains(self._maxChainItems)
+            while len(chainList):
+                if self._timeout(self._start_time, budget):
+                    return False
+                chain = chainList.pop(0)
+                self._handle_one_operation(index, operation, chain, sequence)
