@@ -1,11 +1,10 @@
-import time
-from typing import List, Set, Tuple
-from src.Dto.operation import Operation
-from enum import Enum
-from src.Dto.keywords import Method
-from itertools import groupby, permutations, combinations
+from typing import List, Set
+from itertools import permutations, combinations
 from random import choice
-from src.Dto.operation import RestPath
+from typing import List, Set
+
+from src.Dto.keywords import Method
+from src.Dto.operation import Operation
 
 
 class SemanticValidator:
@@ -76,6 +75,13 @@ class SCA:
                     if c_size == 0:
                         is_loop = False
 
+        self._update_uncovered(seq)
+        return seq
+
+    def _update_uncovered(self, sequence: List[Operation]):
+        covered = set(combinations(sequence, self._strength))
+        self._uncovered -= covered
+
     def _retrieve_dependent_ops(self, op: Operation, seq: List[Operation]):
         result: List[Operation] = [op]
         for candidate in self._operations:
@@ -120,7 +126,6 @@ class SCA:
                 continue
         return max_count, results
 
-
     def _count_permutation_with_op(self, op, seq, c_size):
         p_list = {p + (op,) for p in combinations(seq, c_size)}
         if c_size == self._strength - 1:
@@ -131,4 +136,3 @@ class SCA:
                 if uc[:(c_size + 1)] in p_list:
                     count += 1
         return count
-
