@@ -41,6 +41,12 @@ class RestPath:
         def __str__(self):
             return self.__repr__()
 
+        def __eq__(self, other):
+            if not isinstance(other, RestPath.Element):
+                return False
+
+            return all([t == other.tokens[i] for i, t in enumerate(self.tokens)])
+
     class Token:
         def __init__(self, name: str, is_parameter: bool):
             self._name = name
@@ -51,6 +57,12 @@ class RestPath:
 
         def __str__(self):
             return self.__repr__()
+
+        def __eq__(self, other):
+            if not isinstance(other, RestPath.Token):
+                return False
+
+            return self._name == other._name and self._is_parameter == self._is_parameter
 
     @staticmethod
     def _extract_element(s):
@@ -90,6 +102,11 @@ class RestPath:
                 return False
 
         return True
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, RestPath): return False
+
+        return all([e == o.elements[i] for i, e in enumerate(self.elements)])
 
 
 class Operation:
