@@ -30,9 +30,71 @@ class Response:
         return cls(statusCode, content, operation)
 
 
+class RestPath:
+    class Element:
+        def __init__(self, tokens: list):
+            self.tokens = tokens
+
+        def __repr__(self):
+            return "".join(self.tokens)
+
+        def __str__(self):
+            return self.__repr__()
+
+    class Token:
+        def __init__(self, name: str, is_parameter: bool):
+            self._name = name
+            self._is_parameter = is_parameter
+
+        def __repr__(self):
+            return "{" + self._name + "}" if self._is_parameter else self._name
+
+        def __str__(self):
+            return self.__repr__()
+
+    @staticmethod
+    def _extract_element(s):
+        tokens = []
+        _next = 0
+        while _next < len(s):
+            current = _next
+            if s[_next] == '{':
+                closing = s.find("}", current)
+                if closing < 0:
+                    raise ValueError("Opening { but missing closing } in: " + s)
+                _next = closing + 1
+
+                tokens.append(RestPath.Token(s[current + 1:_next - 1], True))
+            else:
+                _next = s.find("{", current)
+                _next = len(s) if _next < 0 else _next
+                tokens.append(RestPath.Token(s[current:_next], False))
+        return RestPath.Element(tokens)
+
+    def __init__(self, path):
+        if "?" in path or "#" in path:
+            raise ValueError("The path contains invalid characters. "
+                             "Are you sure you didn't pass a full URI?\n" + path)
+
+        self.elements = [self._extract_element(element) for element in path.split("/") if not element.isspace()]
+
+        self.computed_to_string = "/" + "/".join(
+            ["".join([str(t).replace("[\\[\\],]", "") for t in e.tokens]) for e in self.elements])
+
+    def is_ancestor_of(self, other):
+        if len(self.elements) > len(other.elements):
+            return False
+
+        for i, e in enumerate(self.elements):
+            if e.__str__() != other.elements[i]:
+                return False
+
+        return True
+
+
 class Operation:
     def __init__(self, url: str, method):
-        self.url = url
+        self.path = RestPath(url)
         self.method: Method = Method(method)
 
         self.parameterList: List[AbstractParam] = list()
@@ -45,6 +107,10 @@ class Operation:
     #     for param in self.parameterList:
     #         paramList.extend(param.genDomain(self.__repr__(), responseChain, okValues))
     #     return paramList
+
+    @property
+    def url(self):
+        return self.path.computed_to_string
 
     def addParam(self, param: AbstractParam):
         self.parameterList.append(param)
