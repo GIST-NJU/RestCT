@@ -1,4 +1,3 @@
-from typing import List, Set
 from itertools import permutations, combinations
 from random import choice
 from typing import List, Set
@@ -33,8 +32,8 @@ class SemanticValidator:
         for index, operation in enumerate(permutation):
             if operation.method is Method.POST and not SemanticValidator._validate_post(operation, permutation[:index]):
                 return False
-            elif operation is Method.DELETE and not SemanticValidator._validate_delete(operation,
-                                                                                       permutation[index + 1:]):
+            elif operation.method is Method.DELETE and not SemanticValidator._validate_delete(operation,
+                                                                                              permutation[index + 1:]):
                 return False
         return True
 
