@@ -207,7 +207,7 @@ class Executor:
             feedback = None
 
         if feedback is None:
-            logger.debug("status code: {}", 600)
+            # logger.debug("status code: {}", 600)
             return 600, None
         try:
             # logger.debug("status code: {}", feedback.status_code)
@@ -387,6 +387,8 @@ class CA:
         return sortedList[:self._maxChainItems] if self._maxChainItems < len(sortedList) else sortedList
 
     def _executes(self, operation, ca, chain, url_tuple, is_essential=True):
+        if len(ca) == 0:
+            return
         response_list: List[(int, object)] = []
         for case in ca:
             status_code, response = self._executor.process(operation, case, chain)
@@ -416,7 +418,7 @@ class CA:
 
         e_ca = self._handle_essential_params(operation, sequence[:index], chain)
         logger.info(f"{index + 1}-th operation essential parameters covering array size: {len(e_ca)}, "
-                    f"parameters: {len(e_ca[0])}, constraints: {len(operation.constraints)}")
+                    f"parameters: {len(e_ca[0]) if len(e_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
         self._executes(operation, e_ca, chain, success_url_tuple)
 
@@ -426,7 +428,7 @@ class CA:
         # todo history is not None, add return values of executes
         a_ca = self._handle_all_params(operation, sequence[:index], chain, history=None)
         logger.info(f"{index + 1}-th operation all parameters covering array size: {len(a_ca)}, "
-                    f"parameters: {len(a_ca[0])}, constraints: {len(operation.constraints)}")
+                    f"parameters: {len(a_ca[0]) if len(a_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
         self._executes(operation, a_ca, chain, False)
 
@@ -501,10 +503,9 @@ class CA:
 
     def _call_acts(self, domain_map, constraints, strength):
         try:
-            self._acts.process(domain_map, constraints, strength)
+            return self._acts.process(domain_map, constraints, strength)
         except Exception:
             logger.warning("call acts wrong")
-
 
     @staticmethod
     def _timeout(start_time, budget):
@@ -533,3 +534,4 @@ class CA:
                     return False
                 chain = chainList.pop(0)
                 self._handle_one_operation(index, operation, chain, sequence)
+        return True
