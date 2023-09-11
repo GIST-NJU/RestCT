@@ -1,19 +1,21 @@
 import json
-import time
 import re
-import requests
-import subprocess
 import shlex
-import chardet
+import subprocess
+import time
+from collections import defaultdict
 from dataclasses import dataclass
-from src.Dto.keywords import Loc, DataType, Method
 from pathlib import Path
 from typing import List, Tuple, Dict, Union, Set
-from src.Dto.operation import Operation
-from src.Dto.constraint import Constraint, Processor
-from src.Dto.parameter import AbstractParam, ValueType
-from collections import defaultdict
+
+import chardet
+import requests
 from loguru import logger
+
+from src.Dto.constraint import Constraint, Processor
+from src.Dto.keywords import Loc, DataType, Method
+from src.Dto.operation import Operation
+from src.Dto.parameter import AbstractParam, ValueType
 
 
 def _saveChain(responseChains: List[dict], chain: dict, opStr: str, response):
@@ -342,6 +344,7 @@ class RuntimeInfoManager:
         bugFile = folder / "bug_{}.json".format(str(len(op_str_set)))
         with bugFile.open("w") as fp:
             json.dump(bug_info, fp)
+        return bug_info
 
     def save_success_seq(self, url_tuple):
         self._success_sequence.add(url_tuple)
@@ -352,17 +355,6 @@ class RuntimeInfoManager:
 
 
 class CA:
-    # value used in success http calls. key: operation._repr_+paramName
-    # okValueDict: Dict[str, List[Tuple[ValueType, object]]] = defaultdict(list)
-    # success http call sequence. key: url, value: last operation's parameters and values
-    # reuseEssentialSeqDict: Dict[
-    #     Tuple[str], List[Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]]] = defaultdict(list)
-    # reuseAllSeqDict: Dict[Tuple[str], List[Dict[str, Tuple[ValueType, object]]]] = defaultdict(list)
-    # bug: {url: , method: , parameters: , statusCode: , response: , sequence}
-    # bugList: List[Dict[str, Union[str, dict, int, list]]] = list()
-    # seq actually tested, return 20X or 500
-    # successSet: Set = set()
-
     def __init__(self, data_path, acts_jar, a_strength, e_strength, **kwargs):
 
         # response chain
@@ -373,13 +365,13 @@ class CA:
         self._aStrength = a_strength  # cover strength for all parameters
         self._eStrength = e_strength  # cover strength for essential parameters
 
-        ######### refactored code ###########
         self._manager = RuntimeInfoManager()
         self._acts = ACTS(data_path, acts_jar)
         self._executor = Executor(kwargs.get("query_auth"), kwargs.get("header_auth"), self._manager)
 
         self._data_path = data_path
         self._start_time = time.time()
+        self._stat = kwargs.get("stat")
 
     def _select_response_chains(self, response_chains):
         """get _maxChainItems longest chains"""
@@ -387,10 +379,13 @@ class CA:
         return sortedList[:self._maxChainItems] if self._maxChainItems < len(sortedList) else sortedList
 
     def _executes(self, operation, ca, chain, url_tuple, is_essential=True):
+        self._stat.op_executed_num.add(operation)
+
         if len(ca) == 0:
             return
         response_list: List[(int, object)] = []
         for case in ca:
+            self._stat.dump_snapshot()
             status_code, response = self._executor.process(operation, case, chain)
             response_list.append((status_code, response))
 
@@ -399,18 +394,34 @@ class CA:
     def _handle_feedback(self, url_tuple, operation, response_list, chain, ca, is_essential):
         is_success = False
         for index, (sc, response) in enumerate(response_list):
+            self._stat.req_num += 1
             if sc < 300:
                 self._manager.save_reuse(url_tuple, is_essential, ca[index])
                 self._manager.save_ok_value(ca[index])
                 self._manager.save_chain(chain, operation, response)
                 is_success = True
-            if operation.method is Method.POST and sc < 300:
-                self._manager.save_id_count(operation, response, self._id_counter)
-            if sc in range(500, 600):
+
+                self._stat.req_20x_num += 1
+                self._stat.op_success_num.add(operation)
+                if operation.method is Method.POST:
+                    self._manager.save_id_count(operation, response, self._id_counter)
+            elif sc in range(300, 400):
+                self._stat.req_30x_num += 1
+            elif sc in range(400, 500):
+                self._stat.req_40x_num += 1
+            elif sc in range(500, 600):
                 self._manager.save_bug(operation, ca[index], sc, response, chain, self._data_path)
                 is_success = True
+                self._stat.req_50x_num += 1
+                self._stat.bug.add(f"{operation.__repr__()}-{sc}-{response}")
+            elif sc >= 600:
+                self._stat.req_60x_num += 1
+
         if is_success:
             self._manager.save_success_seq(url_tuple)
+            self._stat.update_success_c_way(url_tuple)
+
+        self._stat.dump_snapshot()
 
     def _handle_one_operation(self, index, operation: Operation, chain: dict, sequence):
         self._reset_constraints(operation, operation.parameterList)
@@ -430,7 +441,7 @@ class CA:
         logger.info(f"{index + 1}-th operation all parameters covering array size: {len(a_ca)}, "
                     f"parameters: {len(a_ca[0]) if len(a_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
-        self._executes(operation, a_ca, chain, False)
+        self._executes(operation, a_ca, chain, success_url_tuple, False)
 
     def _handle_essential_params(self, operation, exec_ops, chain):
         """
@@ -531,7 +542,13 @@ class CA:
             chainList = self._manager.get_chains(self._maxChainItems)
             while len(chainList):
                 if self._timeout(self._start_time, budget):
+                    self._stat.seq_executed_num += 1
+                    self._stat.sum_len_of_executed_seq += index
+                    self._stat.update_executed_c_way(sequence[:index])
                     return False
                 chain = chainList.pop(0)
                 self._handle_one_operation(index, operation, chain, sequence)
+        self._stat.seq_executed_num += 1
+        self._stat.sum_len_of_executed_seq += len(sequence)
+        self._stat.update_executed_c_way(sequence)
         return True

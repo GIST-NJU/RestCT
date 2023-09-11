@@ -39,11 +39,13 @@ class SemanticValidator:
 
 
 class SCA:
-    def __init__(self, strength, operations):
+    def __init__(self, strength, operations, stat):
         self._strength = min(strength, len(operations))
         self._operations: Set[Operation] = operations
+        self._stat = stat
 
         self._uncovered = self._compute_all_combinations()
+        self._stat.t_way_to_covered = len(self._uncovered)
 
     def _compute_all_combinations(self):
         cover = set()
@@ -79,11 +81,16 @@ class SCA:
         self._update_uncovered(seq)
         logger.info(
             "uncovered combinations: {}, sequence length: {}".format(len(self._uncovered), len(seq)))
+
+        self._stat.seq_all_num += 1
+        self._stat.sum_len_of_all_seq += len(seq)
+        self._stat.update_all_c_way(seq)
         return seq
 
     def _update_uncovered(self, sequence: List[Operation]):
         covered = set(combinations(sequence, self._strength))
         self._uncovered -= covered
+        self._stat.t_way_covered += len(covered)
 
     def _retrieve_dependent_ops(self, op: Operation, seq: List[Operation]):
         result: List[Operation] = []

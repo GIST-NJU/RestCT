@@ -54,6 +54,9 @@ class Config:
         # data and log path
         self.dataPath = ""
 
+        # snapshot interval
+        self.interval = .10
+
         # forwarding base url
         # self.forwarding_url = "http://localhost:8081"
         self.forwarding_url = None
@@ -96,6 +99,8 @@ class Config:
             raise Exception("test budget cannot be zero")
         else:
             self.budget = settings.budget
+
+        self.interval = settings.interval
 
         if settings.patterns == "":
             patterns = curFile.parent.parent / "lib/matchrules.json"
@@ -187,6 +192,9 @@ if __name__ == "__main__":
     parser.add_argument('--columnId',
                         help='experiment unique name for statistic data',
                         type=str, required=False, default="")
+    parser.add_argument('--interval',
+                        help='snapshot interval',
+                        type=float, required=False, default=.10)
     parser.add_argument('--forwardingURL',
                         help='set if the forwarding proxy is running',
                         type=str, required=False, default="")
@@ -197,7 +205,6 @@ if __name__ == "__main__":
     config.checkAndPrehandling(args)
 
     from src.restct import RestCT
-    from controller import RemoteController
 
     restCT = RestCT(config)
     restCT.run()
