@@ -501,12 +501,10 @@ class CA:
 
     def _call_acts(self, domain_map, constraints, strength):
         try:
-            # todo: 不应该新建类
-            acts = ACTS(self.dataPath, self.jar, domain_map, constraints, strength)
+            self._acts.process(domain_map, constraints, strength)
         except Exception:
-            return [{}]
-        else:
-            return acts.process()
+            logger.warning("call acts wrong")
+
 
     @staticmethod
     def _timeout(start_time, budget):
