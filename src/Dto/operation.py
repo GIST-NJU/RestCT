@@ -36,7 +36,7 @@ class RestPath:
             self.tokens = tokens
 
         def __repr__(self):
-            return "".join(self.tokens)
+            return "".join([t.__repr__() for t in self.tokens])
 
         def __str__(self):
             return self.__repr__()
@@ -88,7 +88,7 @@ class RestPath:
             raise ValueError("The path contains invalid characters. "
                              "Are you sure you didn't pass a full URI?\n" + path)
 
-        self.elements = [self._extract_element(element) for element in path.split("/") if not element.isspace()]
+        self.elements = [self._extract_element(element) for element in path.split("/") if element != ""]
 
         self.computed_to_string = "/" + "/".join(
             ["".join([str(t).replace("[\\[\\],]", "") for t in e.tokens]) for e in self.elements])
@@ -98,7 +98,7 @@ class RestPath:
             return False
 
         for i, e in enumerate(self.elements):
-            if e.__str__() != other.elements[i]:
+            if e.__repr__() != other.elements[i].__repr__():
                 return False
 
         return True

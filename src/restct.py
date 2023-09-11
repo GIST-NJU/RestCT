@@ -56,7 +56,6 @@ class RestCT:
         # self._statistics.start_test()
 
         sca = SCA(self._config.s_strength, self._operations)
-        sca.collectUncoveredSet()
         # self._statistics.seq_to_covered = len(sca.uncoveredSet)
 
         ca = CA(self._config.dataPath,
@@ -67,14 +66,12 @@ class RestCT:
                 header_auth=self._config.header)
 
         sequences = []
-        while len(sca.uncoveredSet) > 0:
-            sequences.append = sca.buildSequence()
-            logger.info(
-                "uncovered combinations: {}, sequence length: {}".format(len(sca.uncoveredSet), len(sequence)))
+        while not sca.is_all_covered():
+            sequences.append(sca.build_one_sequence())
 
             # self._before_testcase()
 
-        for sequence in sorted(sequences):
+        for sequence in sorted(sequences, key=lambda s: len(s)):
             flag = ca.handle(sequence, self._config.budget)
 
             # self._after_testcase()

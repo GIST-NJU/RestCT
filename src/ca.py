@@ -126,7 +126,7 @@ class Executor:
         """
         self.setParamValue(operation, ca_item)
         kwargs = self.assemble(operation, previous_responses)
-        return self.send(**kwargs)
+        return self.send(operation, **kwargs)
 
     @staticmethod
     def assemble(operation, responses) -> dict:
@@ -265,7 +265,7 @@ class RuntimeInfoManager:
         reused_case = self._reused_all_p_seq_dict.get(operations, list())
         if len(reused_case) > 0:
             return [{p: Value(v.val, ValueType.Reused, v.type) for p, v in case.items()} for case in reused_case]
-        return
+        return []
 
     def get_ok_value_dict(self):
         return self._ok_value_dict
@@ -415,9 +415,8 @@ class CA:
         success_url_tuple = tuple([op for op in sequence[:index] if op in chain.keys()] + [operation])
 
         e_ca = self._handle_essential_params(operation, sequence[:index], chain)
-        logger.info("{}-th operation essential parameters covering array size: {}, parameters: {}, "
-                    "constraints: {}".format(index / len(sequence), len(e_ca), len(e_ca[0]),
-                                             len(operation.constraints)))
+        logger.info(f"{index + 1}-th operation essential parameters covering array size: {len(e_ca)}, "
+                    f"parameters: {len(e_ca[0])}, constraints: {len(operation.constraints)}")
 
         self._executes(operation, e_ca, chain, success_url_tuple)
 
@@ -426,9 +425,8 @@ class CA:
 
         # todo history is not None, add return values of executes
         a_ca = self._handle_all_params(operation, sequence[:index], chain, history=None)
-        logger.info("{}-th operation essential parameters covering array size: {}, parameters: {}, "
-                    "constraints: {}".format(index / len(sequence), len(a_ca), len(a_ca[0]),
-                                             len(operation.constraints)))
+        logger.info(f"{index + 1}-th operation all parameters covering array size: {len(a_ca)}, "
+                    f"parameters: {len(a_ca[0])}, constraints: {len(operation.constraints)}")
 
         self._executes(operation, a_ca, chain, False)
 
@@ -440,7 +438,7 @@ class CA:
         :param chain:
         :return:
         """
-        reused_case = self._manager.get_reused_with_essential_p(exec_ops + [operation])
+        reused_case = self._manager.get_reused_with_essential_p(tuple(exec_ops + [operation]))
         if len(reused_case) > 0:
             # 执行过
             logger.debug("        use reuseSeq info: {}, parameters: {}", len(reused_case), len(reused_case[0].keys()))
@@ -449,7 +447,7 @@ class CA:
         return self._cover_params(operation, operation.parameterList, operation.constraints, chain)
 
     def _handle_all_params(self, operation, exec_ops, chain, history):
-        reused_case = self._manager.get_reused_with_all_p(exec_ops + [operation])
+        reused_case = self._manager.get_reused_with_all_p(tuple(exec_ops + [operation]))
         if len(reused_case) > 0:
             # 执行过
             logger.debug("        use reuseSeq info: {}, parameters: {}", len(reused_case), len(reused_case[0].keys()))
@@ -476,9 +474,9 @@ class CA:
 
         domain_map = defaultdict(list)
         for root_p in essential_p_list:
-            p_with_children = root_p.genDomain(operation.__repr__, chain, self._manager.get_ok_value_dict())
+            p_with_children = root_p.genDomain(operation.__repr__(), chain, self._manager.get_ok_value_dict())
             for p in p_with_children:
-                if not self._manager.is_unresolved(operation.__repr__ + p.name):
+                if not self._manager.is_unresolved(operation.__repr__() + p.name):
                     domain_map[p.getGlobalName()] = p.domain
 
         if history is not None and len(history) > 0:

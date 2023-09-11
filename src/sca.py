@@ -3,6 +3,8 @@ from itertools import permutations, combinations
 from random import choice
 from typing import List, Set
 
+from loguru import logger
+
 from src.Dto.keywords import Method
 from src.Dto.operation import Operation
 
@@ -76,6 +78,8 @@ class SCA:
                         is_loop = False
 
         self._update_uncovered(seq)
+        logger.info(
+            "uncovered combinations: {}, sequence length: {}".format(len(self._uncovered), len(seq)))
         return seq
 
     def _update_uncovered(self, sequence: List[Operation]):
@@ -83,13 +87,15 @@ class SCA:
         self._uncovered -= covered
 
     def _retrieve_dependent_ops(self, op: Operation, seq: List[Operation]):
-        result: List[Operation] = [op]
+        result: List[Operation] = []
         for candidate in self._operations:
             if candidate in seq or candidate == op:
                 continue
             if candidate.method is Method.POST and candidate.path.is_ancestor_of(op.path):
                 result.append(candidate)
-        return sorted(result, key=lambda o: len(o.path.elements))
+        result = sorted(result, key=lambda o: len(o.path.elements))
+        result.append(op)
+        return result
 
     def _get_candidates(self, seq: List[Operation]):
         candidates = set()
@@ -110,7 +116,7 @@ class SCA:
 
     def _find_best(self, candidates, seq, c_size):
         if len(candidates) == 0:
-            raise Exception("no candidates for the seq")
+            return 0, []
 
         results = list()
         max_count = 0
@@ -136,3 +142,6 @@ class SCA:
                 if uc[:(c_size + 1)] in p_list:
                     count += 1
         return count
+
+    def is_all_covered(self):
+        return len(self._uncovered) == 0
