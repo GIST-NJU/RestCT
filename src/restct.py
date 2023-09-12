@@ -44,11 +44,15 @@ class RestCT:
         loggerPath = Path(self._config.dataPath) / "log/log_{time}.log"
         logger.remove(0)
         logger.add(loggerPath.as_posix(), rotation="100 MB",
-                   format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - "
-                          "<level>{message}</level>")
+                   format="<level>{level: <6}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
         logger.add(sys.stderr,
-                   format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - "
-                          "<level>{message}</level>")
+                   format="<level>{level: <6}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
+        # logger.add(loggerPath.as_posix(), rotation="100 MB",
+        #            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - "
+        #                   "<level>{message}</level>")
+        # logger.add(sys.stderr,
+        #            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - "
+        #                   "<level>{message}</level>")
 
     def _before_testcase(self):
         if self._controller is not None:

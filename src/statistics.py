@@ -55,7 +55,7 @@ class Statistics:
         self.C_2_way_executed: set = set()
         self.C_2_way_success: set = set()
         self.t_way_to_covered: int = 0  #
-        self.t_way_covered: int = 0  #
+        self.t_way_covered: set = set()  #
         self.req_num: int = 0  #
         self.req_20x_num: int = 0  #
         self.req_30x_num: int = 0  #
@@ -88,12 +88,13 @@ class Statistics:
             covered.add(tuple(c))
         return covered
 
-    def dump_snapshot(self):
+    def dump_snapshot(self, force=False):
         pos = (time.time() - self.start) * 1.0 / self.budget
-        if pos < self.next_pos:
-            return
-        while (time.time() - self.start) * 1.0 / self.budget > self.next_pos:
-            self.next_pos += self.interval
+        if not force:
+            if pos < self.next_pos:
+                return
+            while (time.time() - self.start) * 1.0 / self.budget > self.next_pos:
+                self.next_pos += self.interval
 
         snapshot = Snapshot(pos,
                             self.name,
@@ -108,7 +109,7 @@ class Statistics:
                             len(self.C_2_way_executed),
                             len(self.C_2_way_success),
                             self.t_way_to_covered,
-                            self.t_way_covered,
+                            len(self.t_way_covered),
                             self.req_num,
                             self.req_20x_num,
                             self.req_30x_num,
@@ -122,7 +123,7 @@ class Statistics:
         self._snapshot_list.append(snapshot)
 
     def write_report(self):
-        self.dump_snapshot()
+        self.dump_snapshot(True)
 
         with self.snapshot_file.open("w") as fp:
             writer = csv.writer(fp, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

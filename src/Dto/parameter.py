@@ -340,7 +340,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
         lowWeight = list()
         url = opStr.split("***")[-1]
         for candidate in opSet:
-            otherUrl = candidate.split("***")[-1]
+            otherUrl = candidate.url.split("***")[-1]
             if otherUrl.strip("/") == url.split("{" + paramName + "}")[0].strip("/"):
                 highWeight.append(candidate)
             elif otherUrl.strip("/") == url.split("{" + paramName + "}")[0].strip("/") + "/{" + paramName + "}":

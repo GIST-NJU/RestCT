@@ -90,7 +90,7 @@ class SCA:
     def _update_uncovered(self, sequence: List[Operation]):
         covered = set(combinations(sequence, self._strength))
         self._uncovered -= covered
-        self._stat.t_way_covered += len(covered)
+        self._stat.t_way_covered.update(covered)
 
     def _retrieve_dependent_ops(self, op: Operation, seq: List[Operation]):
         result: List[Operation] = []

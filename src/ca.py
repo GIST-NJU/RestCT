@@ -102,7 +102,7 @@ class ACTS:
                 valueDict[paramNames[i]] = domain_map[paramNames[i]][int(valueIndex)]
             if "history_ca_of_current_op" in valueDict.keys():
                 history_index = valueDict.pop("history_ca_of_current_op")
-                valueDict.update(history_ca_of_current_op[history_index])
+                valueDict.update(history_ca_of_current_op[history_index.val])
             coverArray.append(valueDict)
 
         return coverArray
@@ -288,13 +288,8 @@ class RuntimeInfoManager:
                 self._ok_value_dict[paramStr].append(value)
             else:
                 lst = self._ok_value_dict.get(paramStr)
-                value_list = [v for _, v in lst]
-                if len(lst) < 10 and value[1] not in value_list:
+                if len(lst) < 10 and value not in lst:
                     lst.append(value)
-                else:
-                    type_set = {t for t, _ in lst}
-                    if value[0] not in type_set:
-                        lst.append(value)
 
     def save_chain(self, chain, operation, response):
         new_chain = chain.copy()
@@ -374,23 +369,33 @@ class CA:
         sortedList = sorted(response_chains, key=lambda c: len(c.keys()), reverse=True)
         return sortedList[:self._maxChainItems] if self._maxChainItems < len(sortedList) else sortedList
 
-    def _executes(self, operation, ca, chain, url_tuple, history, is_essential=True):
+    def _executes(self, operation, ca, chain, url_tuple, history, is_essential=True) -> bool:
         self._stat.op_executed_num.add(operation)
         history.clear()
+
+        has_success = False
+        has_bug = False
+
         if len(ca) == 0:
-            return
+            raise Exception("the size of ca can not be zero")
+
         response_list: List[(int, object)] = []
         for case in ca:
             self._stat.dump_snapshot()
             status_code, response = self._executor.process(operation, case, chain)
             response_list.append((status_code, response))
 
-            if status_code < 200:
+            if status_code < 300:
+                has_success = True
                 history.append(case)
+            elif 500 <= status_code < 600:
+                has_bug = True
 
         logger.info(f"status code list:{[sc for (sc, r) in response_list]}")
 
         self._handle_feedback(url_tuple, operation, response_list, chain, ca, is_essential)
+
+        return has_success or has_bug
 
     def _handle_feedback(self, url_tuple, operation, response_list, chain, ca, is_essential):
         is_success = False
@@ -424,13 +429,16 @@ class CA:
 
         self._stat.dump_snapshot()
 
-    def _handle_one_operation(self, index, operation: Operation, chain: dict, sequence):
+    def _handle_one_operation(self, index, operation: Operation, chain: dict, sequence) -> bool:
+        """
+        @return: should jump out the loop of chain_list?
+        """
         success_url_tuple = tuple([op for op in sequence[:index] if op in chain.keys()] + [operation])
 
         if len(operation.parameterList) == 0:
             logger.debug("operation has no parameter, execute and return")
             self._executes(operation, [{}], chain, success_url_tuple, [])
-            return
+            return True
 
         history = []
 
@@ -440,17 +448,17 @@ class CA:
         logger.info(f"{index + 1}-th operation essential parameters covering array size: {len(e_ca)}, "
                     f"parameters: {len(e_ca[0]) if len(e_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
-        self._executes(operation, e_ca, chain, success_url_tuple, history, True)
+        is_break = self._executes(operation, e_ca, chain, success_url_tuple, history, True)
 
         if all([p.isEssential for p in operation.parameterList]):
-            return
+            return is_break
 
         # todo history is not None, add return values of executes
         a_ca = self._handle_all_params(operation, sequence[:index], chain, history)
         logger.info(f"{index + 1}-th operation all parameters covering array size: {len(a_ca)}, "
                     f"parameters: {len(a_ca[0]) if len(a_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
-        self._executes(operation, a_ca, chain, success_url_tuple, history, False)
+        return self._executes(operation, a_ca, chain, success_url_tuple, history, False)
 
     def _handle_essential_params(self, operation, exec_ops, chain, history):
         """
@@ -506,7 +514,7 @@ class CA:
 
         if history_ca_of_current_op is not None and len(history_ca_of_current_op) > 0:
             new_domain_map = {
-                "history_ca_of_current_op": [Value(v, ValueType.Null, DataType.Int32) for v in
+                "history_ca_of_current_op": [Value(v, ValueType.Reused, DataType.Int32) for v in
                                              range(len(history_ca_of_current_op))]}
 
             for p in domain_map.keys():
@@ -560,7 +568,9 @@ class CA:
                     self._stat.update_executed_c_way(sequence[:index])
                     return False
                 chain = chainList.pop(0)
-                self._handle_one_operation(index, operation, chain, sequence)
+                is_break = self._handle_one_operation(index, operation, chain, sequence)
+                if is_break:
+                    break
         self._stat.seq_executed_num += 1
         self._stat.sum_len_of_executed_seq += len(sequence)
         self._stat.update_executed_c_way(sequence)
