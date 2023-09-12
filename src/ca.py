@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import re
 import shlex
@@ -315,6 +316,17 @@ class RuntimeInfoManager:
         else:
             pass
 
+    class EnumEncoder(json.JSONEncoder):
+        PUBLIC_ENUMS = {
+            'ValueType': ValueType,
+            'DataType': DataType
+        }
+
+        def default(self, obj):
+            if type(obj) in self.PUBLIC_ENUMS.values():
+                return {"__enum__": str(obj)}
+            return json.JSONEncoder.default(self, obj)
+
     def save_bug(self, operation, case, sc, response, chain, data_path):
         op_str_set = {d.get("method") + d.get("url") + str(d.get("statusCode")) for d in self._bug_list}
         if operation.method.name + operation.url + str(sc) in op_str_set:
@@ -322,7 +334,7 @@ class RuntimeInfoManager:
         bug_info = {
             "url": operation.url,
             "method": operation.method,
-            "parameters": {paramName: value for paramName, value in case.items()},
+            "parameters": {paramName: dataclasses.asdict(value) for paramName, value in case.items()},
             "statusCode": sc,
             "response": response,
             "responseChain": chain
@@ -334,7 +346,7 @@ class RuntimeInfoManager:
             folder.mkdir(parents=True)
         bugFile = folder / "bug_{}.json".format(str(len(op_str_set)))
         with bugFile.open("w") as fp:
-            json.dump(bug_info, fp)
+            json.dump(bug_info, fp, cls=RuntimeInfoManager.EnumEncoder)
         return bug_info
 
     def save_success_seq(self, url_tuple):
