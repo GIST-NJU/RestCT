@@ -139,3 +139,4 @@ exp/output/
 exp/runScripts/
 exp/**/output/
 exp/**/runScripts/
+/testOutput/
