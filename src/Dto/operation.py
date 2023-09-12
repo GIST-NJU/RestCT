@@ -1,8 +1,9 @@
+from typing import List
+
+from src.Dto.constraint import Constraint
 from src.Dto.keywords import Method, ParamKey, DocKey
 from src.Dto.parameter import AbstractParam, buildParam
-from src.Dto.constraint import Constraint
 from src.Exception.exceptions import UnsupportedError
-from typing import List, Set, Tuple
 
 
 class Response:
@@ -110,8 +111,9 @@ class RestPath:
 
 
 class Operation:
-    def __init__(self, url: str, method):
-        self.path = RestPath(url)
+    def __init__(self, host: str, path: str, method):
+        self._host = host
+        self.path = RestPath(path)
         self.method: Method = Method(method)
 
         self.parameterList: List[AbstractParam] = list()
@@ -127,7 +129,7 @@ class Operation:
 
     @property
     def url(self):
-        return self.path.computed_to_string
+        return self._host + self.path.computed_to_string
 
     def addParam(self, param: AbstractParam):
         self.parameterList.append(param)
@@ -140,10 +142,6 @@ class Operation:
         for param in self.parameterList:
             allParameters.extend(param.seeAllParameters())
         return allParameters
-
-    @property
-    def splittedUrl(self) -> Set[Tuple[str, int]]:
-        return {(part, index) for index, part in enumerate(self.url.split("/"))}
 
     def set_constraints(self, constraints: List[Constraint]):
         self.constraints = constraints

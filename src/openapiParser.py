@@ -1,12 +1,12 @@
-import inspect
 import json
 import os
 from pathlib import Path
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
+
 from src.Dto.keywords import DocKey, ParamKey, DataType, Method
 from src.Dto.operation import Operation
-from src.Dto.parameter import buildParam, Example
 from src.Dto.operation import Response
+from src.Dto.parameter import buildParam, Example
 
 
 class Parser:
@@ -15,7 +15,8 @@ class Parser:
         @param: forwarding_url, only if the forwarding proxy is running
         """
         self._logger = logger
-        self._url_prefix = ""
+        self._host = ""
+        self._path = ""
         self._definitions = None
         self._forwarding_url = kwargs.get("forwarding_url", None)
 
@@ -33,8 +34,9 @@ class Parser:
         with swagger.open("r") as fp:
             spec = json.load(fp)
 
-        self._url_prefix = self._compile_url(spec)
-
+        parsed_url = urlparse(self._compile_url(spec))
+        self._host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        self._path = parsed_url.path
         self._definitions = spec.get(DocKey.DEFINITIONS, {})
 
         # parse paths
@@ -73,7 +75,7 @@ class Parser:
             for method_name, method_info in url_info.items():
                 if method_name not in [m.value for m in Method]:
                     continue
-                operation = Operation(self._url_prefix.rstrip("/") + "/" + url_str.lstrip("/"), method_name)
+                operation = Operation(self._host, self._path.rstrip("/") + "/" + url_str.lstrip("/"), method_name)
                 self.operations.append(operation)
                 # process parameters
                 paramList = method_info.get(DocKey.PARAMS, [])
