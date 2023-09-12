@@ -29,6 +29,7 @@ class RestCT:
         json_parser = Parser(logger, forwarding_url=self._config.forwarding_url)
         json_parser.parse()
         self._operations = json_parser.operations
+        self._statistics.op_num.update(self._operations)
 
         self._sca = SCA(self._config.s_strength, self._operations, self._statistics)
 
