@@ -34,7 +34,7 @@ nohup python3.8 demo_server/app.py 2>&1 &
 Next, run the following command to apply RestCT to test the service:
 
 ```bash
-python3.8 /root/RestCT/src/restct.py --swagger /root/RestCT/demo_server/swagger.json --dir /root/RestCT/demo_server/results
+python3.8 /root/RestCT/src/main.py --swagger /root/RestCT/demo_server/swagger.json --dir /root/RestCT/demo_server/results
 ```
 
 Here, `--swagger` indicates the Swagger specification file of the APIs under test, and `--dir` indicates the output directory of test results. Please refer to the [README](https://github.com/GIST-NJU/RestCT/blob/main/README.md) file for more available options. 

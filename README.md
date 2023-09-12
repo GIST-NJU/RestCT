@@ -35,7 +35,7 @@ python -m spacy download en_core_web_sm
 
 Users can run the RestCT tool with the following command:
 ```bash
-python src/restct.py --swagger <path of spec file> --dir <path of output dir>
+python src/main.py --swagger <path of spec file> --dir <path of output dir>
 ```
 The two mandatory options are:
 
@@ -71,7 +71,7 @@ python demo_server/app.py
 Next, run the following command to execute RestCT (in the root directory of this repo):
 
 ```bash
-python src/restct.py --swagger demo_server/swagger.json --dir demo_server/results
+python src/main.py --swagger demo_server/swagger.json --dir demo_server/results
 ```
 
 The testing process is expected to terminate in about one minute. During this process, the console will print information like the followings:

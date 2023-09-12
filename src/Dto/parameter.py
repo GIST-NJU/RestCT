@@ -1,14 +1,16 @@
-import re
 import abc
 import base64
 import random
+import re
 import string
-import Levenshtein
-from enum import Enum
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Tuple, List, Union, Dict
+from enum import Enum
+from typing import List, Union, Dict
+
+import Levenshtein
+
 from src.Dto.keywords import Loc, ParamKey, DataType, DocKey
-from src.Exception.exceptions import UnsupportedError
 
 
 def buildParam(info: dict, definitions: dict, specifiedName: str = None):
@@ -31,7 +33,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         elif DocKey.ALL_OF in info.keys() or DocKey.ANY_OF in info.keys() or DocKey.ONE_OF in info.keys() or DocKey.ADDITIONAL_PROPERTIES in info.keys():
             return None
         else:
-            raise UnsupportedError(info)
+            raise Exception(info)
         extraInfo.update(info)
         return buildParam(extraInfo, definitions, buildInfo.get("specifiedName"))
     elif paramEnum is not None:
@@ -66,7 +68,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         elif buildInfo["paramFormat"] is DataType.UUID:
             return UuidParam(**buildInfo)
         else:
-            raise UnsupportedError(info.__str__() + " is not taken into consideration")
+            raise Exception(info.__str__() + " is not taken into consideration")
     elif buildInfo["paramType"] is DataType.File:
         return FileParam(**buildInfo)
     elif buildInfo["paramType"] is DataType.Object:
@@ -74,7 +76,7 @@ def buildParam(info: dict, definitions: dict, specifiedName: str = None):
         buildInfo["required"] = info.get("required", [])
         return ObjectParam.buildObject(buildInfo, definitions)
     else:
-        raise UnsupportedError(info.__str__() + " is not taken into consideration")
+        raise Exception(info.__str__() + " is not taken into consideration")
 
 
 class ValueType(Enum):
@@ -83,7 +85,15 @@ class ValueType(Enum):
     Example = "example"
     Random = "random"
     Dynamic = "dynamic"
+    Reused = "Reused"
     NULL = "Null"
+
+
+@dataclass(frozen=True)
+class Value:
+    val: object = None
+    generator: ValueType = ValueType.NULL
+    type: DataType = DataType.NULL
 
 
 class Example:
@@ -189,7 +199,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
         # if involved in constraints
         self.isConstrained = False
         # domain
-        self.domain: List[Tuple[ValueType, Union[str, int, float, None]]] = list()
+        self.domain: List[Value] = list()
         # self.value: Tuple[ValueType, str] = tuple()
         self.value = None
         self.isReuse: bool = False
@@ -223,40 +233,40 @@ class AbstractParam(metaclass=abc.ABCMeta):
                 return [self]
 
             if len(self.default) > 0:
-                self.domain = [(ValueType.Default, d) for d in self.default]
+                self.domain = [Value(d, ValueType.Default, self.type) for d in self.default]
                 if len(self.domain) > 0:
                     if not self.required:
-                        self.domain.append((ValueType.NULL, None))
+                        self.domain.append(Value(None, ValueType.NULL, self.type))
                     return [self]
             elif okValues is not None and len(okValues) > 0:
                 self.domain = self._getOkValue(opStr, okValues)
                 if len(self.domain) > 0:
                     if not self.required:
-                        self.domain.append((ValueType.NULL, None))
+                        self.domain.append(Value(None, ValueType.NULL, self.type))
                     return [self]
             else:
                 pass
 
             exampleValues = Example.findExample(self.name)[:2]
             if len(exampleValues) == 1:
-                self.domain = [(ValueType.Random, Fuzzer.mutate(exampleValues[0])[0]),
-                               (ValueType.Default, exampleValues[0])]
+                self.domain = [Value(Fuzzer.mutate(exampleValues[0])[0], ValueType.Random, self.type),
+                               Value(exampleValues[0], ValueType.Default, self.type)]
             elif len(exampleValues) > 1:
                 vTSet = (ValueType.Default, ValueType.Random)
-                self.domain = [(vTSet[i % 2], e) for i, e in enumerate(exampleValues)]
+                self.domain = [Value(e, vTSet[i % 2], self.type) for i, e in enumerate(exampleValues)]
             else:
                 randomValue = self.genRandom()
-                self.domain = [(ValueType.Random, r) for r in randomValue]
+                self.domain = [Value(r, ValueType.Random, self.type) for r in randomValue]
 
             if not self.required:
-                self.domain.append((ValueType.NULL, None))
+                self.domain.append(Value(None, ValueType.NULL, self.type))
         return [self]
 
-    def _getOkValue(self, opStr, okValues) -> List[Tuple[ValueType, Union[str, int, float, None]]]:
+    def _getOkValue(self, opStr, okValues) -> List[Value]:
         paramId = opStr + self.name
         domain = list()
-        for valueType, value in okValues.get(paramId, []):
-            domain.append((valueType, value))
+        for value, valueType, data_type in okValues.get(paramId, []):
+            domain.append(Value(value, valueType, data_type))
         return domain
 
     def _getDynamicValues(self, opStr, responseChains):
@@ -287,7 +297,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
             if similarity_max > 0 and right_value not in responseValue:
                 dynamicValues.append((predecessor, right_path))
         if len(dynamicValues) > 0:
-            return [(ValueType.Dynamic, v) for v in dynamicValues]
+            return [Value(v, ValueType.Dynamic, self.type) for v in dynamicValues]
         else:
             return list()
 
@@ -330,7 +340,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
         lowWeight = list()
         url = opStr.split("***")[-1]
         for candidate in opSet:
-            otherUrl = candidate.split("***")[-1]
+            otherUrl = candidate.url.split("***")[-1]
             if otherUrl.strip("/") == url.split("{" + paramName + "}")[0].strip("/"):
                 highWeight.append(candidate)
             elif otherUrl.strip("/") == url.split("{" + paramName + "}")[0].strip("/") + "/{" + paramName + "}":
@@ -344,13 +354,13 @@ class AbstractParam(metaclass=abc.ABCMeta):
         pass
 
     def printableValue(self, response):
-        if len(self.value) == 0:
+        if self.value is None:
             return None
-        valueType, value = self.value
-        if valueType is ValueType.Random:
-            value = Fuzzer.mutate(value, r=1)[0]
-        if valueType is ValueType.Dynamic:
-            opStr, path = value
+        value = self.value.val
+        if self.value.generator is ValueType.Random:
+            value = Fuzzer.mutate(self.value.val, r=1)[0]
+        if self.value.generator is ValueType.Dynamic:
+            opStr, path = self.value.val
             response = response.get(opStr)
             value = self._assembleDynamic(path, response)
         return value
@@ -383,7 +393,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
             return self.name
 
     @abc.abstractmethod
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
         # object -> dict
         # array -> list
         pass
@@ -395,7 +405,7 @@ class ObjectParam(AbstractParam):
         super().__init__(specifiedName, default, loc, required, paramType, paramFormat, description)
 
         self._children: List[AbstractParam] = children
-        self.value: Dict[str, Tuple[ValueType, str]] = dict()
+        self.value: Dict[str, Value] = dict()
         for child in self._children:
             child.parent = self
 
@@ -446,7 +456,7 @@ class ObjectParam(AbstractParam):
                 value[child.name] = child.printableValue(response)
         return None if len(value.keys()) == 0 else value
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]):
+    def getValueDto(self, value_dict: Dict[str, Value]):
         object_param = dict()
         for child in self._children:
             object_param.update({child.name: child.getValueDto(value_dict)})
@@ -478,7 +488,7 @@ class ArrayParam(AbstractParam):
     def buildArray(cls, info, definitions):
         itemInfo: dict = info.pop(ParamKey.ITEMS, {})
         if len(itemInfo) == 0:
-            raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
+            raise Exception("{} can not be transferred to ArrayParam".format(info))
         elif ParamKey.TYPE in itemInfo.keys():
             itemParam = buildParam(itemInfo, definitions, "_item")
             # info["specifiedName"] = ""
@@ -494,7 +504,7 @@ class ArrayParam(AbstractParam):
             info["itemParam"] = itemParam
             return cls(**info)
         else:
-            raise UnsupportedError("{} can not be transferred to ArrayParam".format(info))
+            raise Exception("{} can not be transferred to ArrayParam".format(info))
 
     def seeAllParameters(self) -> List[AbstractParam]:
         allParameters = self._item.seeAllParameters()
@@ -513,7 +523,7 @@ class ArrayParam(AbstractParam):
         else:
             return [value]
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
         array_param = list()
         array_param.append(self._item.getValueDto(value_dict))
         self.value = array_param
@@ -528,16 +538,16 @@ class BoolParam(AbstractParam):
         self._enum = [True, False]
 
     def genDomain(self, opStr, responseChains, okValues) -> list:
-        self.domain = [(ValueType.Enum, False), (ValueType.Enum, True)]
+        self.domain = [Value(False, ValueType.Enum, self.type), Value(True, ValueType.Enum, self.type)]
         if not self.required:
-            self.domain.append((ValueType.NULL, None))
+            self.domain.append(Value(None, ValueType.NULL, self.type))
         return [self]
 
     def genRandom(self):
         pass
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value
 
 
@@ -550,17 +560,17 @@ class EnumParam(AbstractParam):
         self.enum: list = enum
 
     def genDomain(self, opStr, responseChains, okValues) -> list:
-        self.domain = [(ValueType.Enum, v) for v in self.enum]
+        self.domain = [Value(v, ValueType.Enum, self.type) for v in self.enum]
         if not self.required:
-            self.domain.append((ValueType.NULL, None))
+            self.domain.append(Value(None, ValueType.NULL, self.type))
 
         return [self]
 
     def genRandom(self):
         pass
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value
 
 
@@ -581,18 +591,18 @@ class FileParam(AbstractParam):
         ])]
 
     def printableValue(self, response):
+        # todo: Value
         value = super(FileParam, self).printableValue(response)
-        if len(self.value) == 0:
+        if self.value is None:
             return None
         else:
-            valueType, _ = self.value
-            if valueType is ValueType.Random:
+            if self.value.generator is ValueType.Random:
                 return {'file': ('random.txt', value)}
             else:
                 return value
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value
 
 
@@ -623,8 +633,8 @@ class NumberParam(AbstractParam):
             randomValues = map(lambda n: n * self._multipleOf, randomValues)
         return randomValues
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value
 
 
@@ -647,8 +657,8 @@ class StringParam(AbstractParam):
             randomValues = [base64.b64encode(s.encode("utf-8")).decode("utf-8") for s in randomValues]
         return randomValues
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value
 
 
@@ -676,19 +686,18 @@ class Date(AbstractParam):
 
     def printableValue(self, response):
         value = super(Date, self).printableValue(response)
-        if len(self.value) == 0:
+        if self.value is None:
             return None
         else:
-            valueType, _ = self.value
-            if valueType is ValueType.Random:
+            if self.value.generator is ValueType.Random:
                 try:
                     value = Date.getMutate(datetime.strptime(value, '%Y-%m-%d'))[0]
                 except ValueError:
                     value = Date.getMutate()[0]
             return value
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value
 
 
@@ -700,8 +709,8 @@ class UuidParam(AbstractParam):
     def genRandom(self) -> list:
         pass
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value
 
 
@@ -727,7 +736,7 @@ class DateTime(AbstractParam):
 
     def printableValue(self, response):
         value = super(DateTime, self).printableValue(response)
-        if len(self.value) == 0:
+        if self.value is None:
             return None
         else:
             # valueType, _ = self.value
@@ -738,6 +747,6 @@ class DateTime(AbstractParam):
             #         value = DateTime.getMutate(datetime.utcnow())[0]
             return value
 
-    def getValueDto(self, value_dict: Dict[str, Tuple[ValueType, object]]) -> Union:
-        self.value = value_dict.get(self.getGlobalName(), [])
+    def getValueDto(self, value_dict: Dict[str, Value]) -> Union:
+        self.value = value_dict.get(self.getGlobalName(), None)
         return self.value

@@ -237,7 +237,7 @@ def checkAndPrehandling(settings):
     SCRIPTS_DIR = scriptDir.as_posix()
 
     if settings.toolDir is None or settings.toolDir == "":
-        toolDir = curFile.parent.parent / "src/restct.py"
+        toolDir = curFile.parent.parent / "src/main.py"
     else:
         toolDir = Path(settings.toolDir)
     if not toolDir.exists():
