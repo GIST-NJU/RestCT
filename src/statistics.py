@@ -92,7 +92,7 @@ class Statistics:
         pos = (time.time() - self.start) * 1.0 / self.budget
         if pos < self.next_pos:
             return
-        while (time.time() - self.start) * 1.0 > self.next_pos:
+        while (time.time() - self.start) * 1.0 / self.budget > self.next_pos:
             self.next_pos += self.interval
 
         snapshot = Snapshot(pos,
