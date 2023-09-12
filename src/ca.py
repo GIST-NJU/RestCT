@@ -322,7 +322,7 @@ class RuntimeInfoManager:
 
     def save_bug(self, operation, case, sc, response, chain, data_path):
         op_str_set = {d.get("method") + d.get("url") + str(d.get("statusCode")) for d in self._bug_list}
-        if operation.method + operation.url + str(sc) in op_str_set:
+        if operation.method.name + operation.url + str(sc) in op_str_set:
             return
         bug_info = {
             "url": operation.url,
