@@ -4,7 +4,6 @@ import shlex
 import subprocess
 import time
 from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Tuple, Dict, Union, Set
 
@@ -15,7 +14,7 @@ from loguru import logger
 from src.Dto.constraint import Constraint, Processor
 from src.Dto.keywords import Loc, DataType, Method
 from src.Dto.operation import Operation
-from src.Dto.parameter import AbstractParam, ValueType
+from src.Dto.parameter import AbstractParam, ValueType, Value
 
 
 def _saveChain(responseChains: List[dict], chain: dict, opStr: str, response):
@@ -91,26 +90,29 @@ class ACTS:
         stdout.decode(encoding)
         return outputFile
 
-    def parseOutput(self, outputFile: Path, domain_map, paramNames):
+    def parseOutput(self, outputFile: Path, domain_map, paramNames, history_ca_of_current_op: List[dict]):
         with outputFile.open("r") as fp:
             lines = [line.strip("\n") for line in fp.readlines() if "#" not in line and len(line.strip("\n")) > 0]
         paramNames = [self.getName(paramId, paramNames) for paramId in lines[0].strip("\n").split(",")]
-        coverArray: List[Dict[str, Tuple[ValueType, Union[str, int, float, list, dict]]]] = list()
+        coverArray: List[Dict[str, Value]] = list()
         for line in lines[1:]:
             valueDict = dict()
             valueIndexList = line.strip("\n").split(",")
             for i, valueIndex in enumerate(valueIndexList):
                 valueDict[paramNames[i]] = domain_map[paramNames[i]][int(valueIndex)]
+            if "history_ca_of_current_op" in valueDict.keys():
+                history_index = valueDict.pop("history_ca_of_current_op")
+                valueDict.update(history_ca_of_current_op[history_index])
             coverArray.append(valueDict)
 
         return coverArray
 
-    def process(self, domain_map, constraints: List[Constraint], strength: int):
+    def process(self, domain_map, constraints: List[Constraint], strength: int, history_ca_of_current_op: List[dict]):
         strength = min(strength, len(domain_map.keys()))
         paramNames = list(domain_map.keys())
         inputFile = self.writeInput(domain_map, paramNames, constraints, strength)
         outputFile = self.callActs(strength, inputFile)
-        return self.parseOutput(outputFile, domain_map, paramNames)
+        return self.parseOutput(outputFile, domain_map, paramNames, history_ca_of_current_op)
 
 
 class Executor:
@@ -150,6 +152,7 @@ class Executor:
                 # assert p.loc is not Loc.Path, "{}:{}".format(p.name, p.loc.value)
             else:
                 if p.type is DataType.File:
+                    # todo: fixme: bug
                     files = value
                 elif p.loc is Loc.Path:
                     assert p.name != "" and p.name is not None
@@ -232,18 +235,11 @@ class Auth:
         return r
 
 
-@dataclass(frozen=True)
-class Value:
-    val: object = None
-    generator: ValueType = ValueType.NULL
-    type: DataType = DataType.NULL
-
-
 class RuntimeInfoManager:
     def __init__(self):
         self._num_of_requests = 0
 
-        self._ok_value_dict: Dict[str, List[Tuple[ValueType, object]]] = defaultdict(list)
+        self._ok_value_dict: Dict[str, List[Value]] = defaultdict(list)
         self._reused_essential_seq_dict: Dict[Tuple[Operation], List[Dict[str, Value]]] = defaultdict(list)
         self._reused_all_p_seq_dict: dict = defaultdict(list)
         self._response_chains: List[Dict[str, object]] = [dict()]
@@ -378,9 +374,9 @@ class CA:
         sortedList = sorted(response_chains, key=lambda c: len(c.keys()), reverse=True)
         return sortedList[:self._maxChainItems] if self._maxChainItems < len(sortedList) else sortedList
 
-    def _executes(self, operation, ca, chain, url_tuple, is_essential=True):
+    def _executes(self, operation, ca, chain, url_tuple, history, is_essential=True):
         self._stat.op_executed_num.add(operation)
-
+        history.clear()
         if len(ca) == 0:
             return
         response_list: List[(int, object)] = []
@@ -388,6 +384,9 @@ class CA:
             self._stat.dump_snapshot()
             status_code, response = self._executor.process(operation, case, chain)
             response_list.append((status_code, response))
+
+            if status_code < 200:
+                history.append(case)
 
         self._handle_feedback(url_tuple, operation, response_list, chain, ca, is_essential)
 
@@ -428,28 +427,30 @@ class CA:
 
         if len(operation.parameterList) == 0:
             logger.debug("operation has no parameter, execute and return")
-            self._executes(operation, [{}], chain, success_url_tuple)
+            self._executes(operation, [{}], chain, success_url_tuple, [])
             return
+
+        history = []
 
         self._reset_constraints(operation, operation.parameterList)
 
-        e_ca = self._handle_essential_params(operation, sequence[:index], chain)
+        e_ca = self._handle_essential_params(operation, sequence[:index], chain, history)
         logger.info(f"{index + 1}-th operation essential parameters covering array size: {len(e_ca)}, "
                     f"parameters: {len(e_ca[0]) if len(e_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
-        self._executes(operation, e_ca, chain, success_url_tuple)
+        self._executes(operation, e_ca, chain, success_url_tuple, history, True)
 
         if all([p.isEssential for p in operation.parameterList]):
             return
 
         # todo history is not None, add return values of executes
-        a_ca = self._handle_all_params(operation, sequence[:index], chain, history=None)
+        a_ca = self._handle_all_params(operation, sequence[:index], chain, history)
         logger.info(f"{index + 1}-th operation all parameters covering array size: {len(a_ca)}, "
                     f"parameters: {len(a_ca[0]) if len(a_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
-        self._executes(operation, a_ca, chain, success_url_tuple, False)
+        self._executes(operation, a_ca, chain, success_url_tuple, history, False)
 
-    def _handle_essential_params(self, operation, exec_ops, chain):
+    def _handle_essential_params(self, operation, exec_ops, chain, history):
         """
 
         :param operation:
@@ -463,7 +464,11 @@ class CA:
             logger.debug("        use reuseSeq info: {}, parameters: {}", len(reused_case), len(reused_case[0].keys()))
             return reused_case
 
-        return self._cover_params(operation, operation.parameterList, operation.constraints, chain)
+        parameter_list = list(filter(lambda p: p.isEssential, operation.parameterList))
+        if len(parameter_list) == 0:
+            return [{}]
+
+        return self._cover_params(operation, parameter_list, operation.constraints, chain, history)
 
     def _handle_all_params(self, operation, exec_ops, chain, history):
         reused_case = self._manager.get_reused_with_all_p(tuple(exec_ops + [operation]))
@@ -472,12 +477,14 @@ class CA:
             logger.debug("        use reuseSeq info: {}, parameters: {}", len(reused_case), len(reused_case[0].keys()))
             return reused_case
 
-        return self._cover_params(operation, operation.parameterList, operation.constraints, chain, history)
+        parameter_list = operation.parameterList
 
-    def _cover_params(self, operation, parameters, constraints, chain, history: List[dict] = None):
+        return self._cover_params(operation, parameter_list, operation.constraints, chain, history)
+
+    def _cover_params(self, operation, parameters, constraints, chain, history_ca_of_current_op: List[dict]):
         """
         generate domain for each parameter of the current operation
-        @param history: executed essential params
+        @param history_ca_of_current_op: ca_1 -> ca_2 -> ca_3, currently, essential_ca -> all_ca
         @param operation: the target operation
         @param parameters: parameter list
         @param constraints: the constraints among parameters
@@ -485,42 +492,40 @@ class CA:
         @return: the parameters and their domains
         """
 
-        if history is None:
-            history = []
-        essential_p_list = list(filter(lambda p: p.isEssential, parameters))
-        if len(essential_p_list) == 0:
-            return []
+        if history_ca_of_current_op is None:
+            history_ca_of_current_op = []
 
         domain_map = defaultdict(list)
-        for root_p in essential_p_list:
+        for root_p in parameters:
             p_with_children = root_p.genDomain(operation.__repr__(), chain, self._manager.get_ok_value_dict())
             for p in p_with_children:
                 if not self._manager.is_unresolved(operation.__repr__() + p.name):
                     domain_map[p.getGlobalName()] = p.domain
 
-        if history is not None and len(history) > 0:
+        if history_ca_of_current_op is not None and len(history_ca_of_current_op) > 0:
             new_domain_map = {
-                "successEssentialCases": [Value(v, ValueType.Null, DataType.Int32) for v in range(len(history))]}
+                "history_ca_of_current_op": [Value(v, ValueType.Null, DataType.Int32) for v in
+                                             range(len(history_ca_of_current_op))]}
 
             for p in domain_map.keys():
-                if p not in history[0].keys():
+                if p not in history_ca_of_current_op[0].keys():
                     new_domain_map[p] = domain_map.get(p)
 
             for c in operation.constraints:
                 for p in c.paramNames:
                     if self._manager.is_unresolved(p):
-                        return dict()
+                        return [{}]
 
             domain_map = new_domain_map
 
         for p, v in domain_map.items():
             logger.debug(f"            {p}: {len(v)} - {v}")
 
-        return self._call_acts(domain_map, constraints, self._eStrength)
+        return self._call_acts(domain_map, constraints, self._eStrength, history_ca_of_current_op)
 
-    def _call_acts(self, domain_map, constraints, strength):
+    def _call_acts(self, domain_map, constraints, strength, history_ca_of_current_op):
         try:
-            return self._acts.process(domain_map, constraints, strength)
+            return self._acts.process(domain_map, constraints, strength, history_ca_of_current_op)
         except Exception:
             logger.warning("call acts wrong")
 
