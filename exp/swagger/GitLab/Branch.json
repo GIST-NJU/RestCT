@@ -5,7 +5,7 @@
         "version": "1.0.0",
         "title": "GitLab Commit API"
     },
-    "host": "127.0.0.1:30080",
+    "host": "localhost:30000",
     "basePath": "/api/v4",
     "schemes": [
         "http"

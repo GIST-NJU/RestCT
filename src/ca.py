@@ -327,7 +327,7 @@ class RuntimeInfoManager:
         bug_info = {
             "url": operation.url,
             "method": operation.method,
-            "parameters": {paramName: (vt.value, v) for paramName, (vt, v) in case.items()},
+            "parameters": {paramName: value for paramName, value in case.items()},
             "statusCode": sc,
             "response": response,
             "responseChain": chain
@@ -387,6 +387,8 @@ class CA:
 
             if status_code < 200:
                 history.append(case)
+
+        logger.info(f"status code list:{[sc for (sc, r) in response_list]}")
 
         self._handle_feedback(url_tuple, operation, response_list, chain, ca, is_essential)
 
