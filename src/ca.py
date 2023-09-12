@@ -424,8 +424,14 @@ class CA:
         self._stat.dump_snapshot()
 
     def _handle_one_operation(self, index, operation: Operation, chain: dict, sequence):
-        self._reset_constraints(operation, operation.parameterList)
         success_url_tuple = tuple([op for op in sequence[:index] if op in chain.keys()] + [operation])
+
+        if len(operation.parameterList) == 0:
+            logger.debug("operation has no parameter, execute and return")
+            self._executes(operation, [{}], chain, success_url_tuple)
+            return
+
+        self._reset_constraints(operation, operation.parameterList)
 
         e_ca = self._handle_essential_params(operation, sequence[:index], chain)
         logger.info(f"{index + 1}-th operation essential parameters covering array size: {len(e_ca)}, "
