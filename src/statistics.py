@@ -9,6 +9,9 @@ from pathlib import Path
 class Snapshot:
     pos: int = 0
     name: str = ""
+    s_strength: int = 2
+    e_strength: int = 3
+    a_strength: int = 2
     seq_all_num: int = 0
     seq_executed_num: int = 0
     avg_len_of_all_seq: float = 0.0
@@ -34,14 +37,17 @@ class Snapshot:
 
 
 class Statistics:
-    def __init__(self, name, budget, interval, output_folder):
+    def __init__(self, config):
         self.start = time.time()
-        self.name = name
-        self.budget = budget
-        self.interval = interval
+        self.name = config.columnId
+        self.s_s = config.s_strength
+        self.e_s = config.e_strength
+        self.a_s = config.a_strength
+        self.budget = config.budget
+        self.interval = config.interval
         self.next_pos = 0
-        self.snapshot_file = Path(output_folder) / "snapshot.csv"
-        self.report_file = Path(output_folder) / "report.csv"
+        self.snapshot_file = Path(config.output_folder) / "snapshot.csv"
+        self.report_file = Path(config.output_folder) / "report.csv"
         self._snapshot_list = []
 
         self.seq_all_num = 0  #
@@ -98,6 +104,9 @@ class Statistics:
 
         snapshot = Snapshot(pos,
                             self.name,
+                            self.s_s,
+                            self.e_s,
+                            self.a_s,
                             self.seq_all_num,
                             self.seq_executed_num,
                             self.sum_len_of_all_seq * 1.0 / self.seq_all_num if self.sum_len_of_executed_seq > 0 else 0,
@@ -125,26 +134,36 @@ class Statistics:
     def write_report(self):
         self.dump_snapshot(True)
 
-        with self.snapshot_file.open("w") as fp:
-            writer = csv.writer(fp, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        if not self.snapshot_file.exists():
+            with self.snapshot_file.open("a+") as fp:
+                writer = csv.writer(fp, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-            # Write the header row
-            header = Snapshot.__annotations__.keys()
-            writer.writerow(header)
+                # Write the header row
+                header = Snapshot.__annotations__.keys()
+                writer.writerow(header)
+
+        if not self.report_file.exists():
+            with self.report_file.open("a+") as fp:
+                writer = csv.writer(fp, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+                # Write the header row
+                header = Snapshot.__annotations__.keys()
+                writer.writerow(header)
+
+        with self.snapshot_file.open("a+") as fp:
+            writer = csv.writer(fp, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
             # Write data rows
             for snapshot in self._snapshot_list:
+                header = Snapshot.__annotations__.keys()
                 row_data = [getattr(snapshot, field) for field in header]
                 writer.writerow(row_data)
 
-        with self.report_file.open("w") as fp:
+        with self.report_file.open("a+") as fp:
             writer = csv.writer(fp, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-            # Write the header row
-            header = Snapshot.__annotations__.keys()
-            writer.writerow(header)
-
             # Write data rows
+            header = Snapshot.__annotations__.keys()
             snapshot = self._snapshot_list[-1]
             row_data = [getattr(snapshot, field) for field in header]
             writer.writerow(row_data)
