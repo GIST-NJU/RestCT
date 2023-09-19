@@ -16,7 +16,7 @@ class RestCT:
     def __init__(self, config):
         self._config = config
         self._logger = logger
-        self._statistics = Statistics(config.columnId, config.budget, config.interval, config.output_folder)
+        self._statistics = Statistics(config)
 
         self._seq_set: Set[tuple] = set()
 
