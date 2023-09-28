@@ -59,7 +59,7 @@ class Parser:
         host = spec.get(DocKey.HOST, "")
         base_path = "{}://{}/{}".format(protocol, host.strip("/"), baseurl.strip("/"))
 
-        if self._forwarding_url is not None and len(self._forwarding_url) == 0:
+        if self._forwarding_url is not None and len(self._forwarding_url) != 0:
             base_path = self._forwarding_url.rstrip('/') + "/" + urlparse(base_path).path.lstrip('/')
 
         return base_path

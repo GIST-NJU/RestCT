@@ -1,15 +1,16 @@
 import json
 import os
 import re
+from collections import defaultdict, Counter
+from enum import Enum
+from pathlib import Path
+from typing import List, Set
 
 import spacy
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
-from pathlib import Path
-from collections import defaultdict, Counter
-from typing import List, Set
+
 from src.Dto.parameter import AbstractParam, EnumParam
-from enum import Enum
 
 Doc.set_extension("constraints", default=None, force=True)
 
@@ -145,14 +146,14 @@ class Constraint:
         :return: string in acts input format
         """
         formattedStr = self._template
-        for matcher in re.finditer(r"(\w)\1\s*(!?=)\s*[\'\"]?(None|(\w)\4)[\'\"]?", self._template):
+        for matcher in re.finditer(r"(\w)\1\s*(!?=?=)\s*[\'\"]?(None|(\w)\4)[\'\"]?", self._template):
             if matcher.group(3) == "None":
                 paramName, op, value = self.ents[ord(matcher.group(1)) - 65], matcher.group(2), None
             else:
                 paramName, op, value = self.ents[ord(matcher.group(1)) - 65], matcher.group(2), self.ents[
                     ord(matcher.group(4)) - 65]
             try:
-                valueList = [v[1] for v in valueDict.get(paramName)]
+                valueList = [v.val for v in valueDict.get(paramName)]
                 valueIndex = valueList.index(value)
             except (ValueError, TypeError):
                 return None
