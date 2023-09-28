@@ -146,7 +146,7 @@ class Constraint:
         :return: string in acts input format
         """
         formattedStr = self._template
-        for matcher in re.finditer(r"(\w)\1\s*(!?=)\s*[\'\"]?(None|(\w)\4)[\'\"]?", self._template):
+        for matcher in re.finditer(r"(\w)\1\s*(!?=?=)\s*[\'\"]?(None|(\w)\4)[\'\"]?", self._template):
             if matcher.group(3) == "None":
                 paramName, op, value = self.ents[ord(matcher.group(1)) - 65], matcher.group(2), None
             else:
