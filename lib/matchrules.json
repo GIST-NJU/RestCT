@@ -68,7 +68,9 @@
       "represent": "XORp1p2",
       "pattern": [{"LEMMA": "either"}, {"ENT_TYPE": "PARAM"}, {}, {"ENT_TYPE": "PARAM"}, {"LEMMA": "be"}, {"LEMMA": {"IN": ["specify", "require", "enable", "present", "include", "provide"]}}, {}, {"LEMMA": "not"}, {"LEMMA":  "both"}],
       "example": "Either address.postalCode or address.region is required, not both",
-      "constraint": ["(AA != 'None') => (BB = 'None')", "(BB = 'None') => (AA != 'None')", "(BB != 'None') => (AA = 'None')", "(AA = 'None') => (BB != 'None')"]
+      "constraint": [
+        "(AA == 'None') || (BB == 'None')"
+      ]
     },
     {
       "represent": "XORp1p2",
