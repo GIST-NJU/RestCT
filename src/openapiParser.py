@@ -59,7 +59,7 @@ class Parser:
         host = spec.get(DocKey.HOST, "")
         base_path = "{}://{}/{}".format(protocol, host.strip("/"), baseurl.strip("/"))
 
-        if self._forwarding_url is not None and len(self._forwarding_url) == 0:
+        if self._forwarding_url is not None and len(self._forwarding_url) != 0:
             base_path = self._forwarding_url.rstrip('/') + "/" + urlparse(base_path).path.lstrip('/')
 
         return base_path
@@ -75,7 +75,9 @@ class Parser:
             for method_name, method_info in url_info.items():
                 if method_name not in [m.value for m in Method]:
                     continue
-                operation = Operation(self._host, self._path.rstrip("/") + "/" + url_str.lstrip("/"), method_name)
+                header = method_info.get("consumes")
+                operation = Operation(self._host, self._path.rstrip("/") + "/" + url_str.lstrip("/"), method_name,
+                                      header)
                 self.operations.append(operation)
                 # process parameters
                 paramList = method_info.get(DocKey.PARAMS, [])

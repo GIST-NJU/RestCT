@@ -259,7 +259,7 @@ class AbstractParam(metaclass=abc.ABCMeta):
                 self.domain = [Value(r, ValueType.Random, self.type) for r in randomValue]
 
             if not self.required:
-                self.domain.append(Value(None, ValueType.NULL, self.type))
+                self.domain.append(Value(None, ValueType.NULL, DataType.NULL))
         return [self]
 
     def _getOkValue(self, opStr, okValues) -> List[Value]:

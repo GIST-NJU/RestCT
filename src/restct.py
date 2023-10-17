@@ -21,8 +21,8 @@ class RestCT:
         self._seq_set: Set[tuple] = set()
 
         self._controller = None
-        if self._config.forwarding_url is not None and len(self._config.forwarding_url) > 0:
-            self._controller = RemoteController(config.forwarding_url)
+        if self._config.workflow_url is not None and len(self._config.workflow_url) > 0:
+            self._controller = RemoteController(config.workflow_url)
 
         self._update_log_config()
 
@@ -48,12 +48,6 @@ class RestCT:
                    format="<level>{level: <6}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
         logger.add(sys.stderr,
                    format="<level>{level: <6}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
-        # logger.add(loggerPath.as_posix(), rotation="100 MB",
-        #            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - "
-        #                   "<level>{message}</level>")
-        # logger.add(sys.stderr,
-        #            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | - "
-        #                   "<level>{message}</level>")
 
     def _before_testcase(self):
         if self._controller is not None:
@@ -72,11 +66,11 @@ class RestCT:
         while not self._sca.is_all_covered():
             sequences.append(self._sca.build_one_sequence())
             self._statistics.dump_snapshot()
-            # self._before_testcase()
 
         for sequence in sorted(sequences, key=lambda s: len(s)):
+            self._before_testcase()
             flag = self._ca.handle(sequence, self._config.budget)
-            # self._after_testcase()
+            self._after_testcase()
 
             if not flag:
                 break

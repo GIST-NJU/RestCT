@@ -61,6 +61,8 @@ class Config:
         # self.forwarding_url = "http://localhost:8081"
         self.forwarding_url = None
 
+        self.workflow_url = None
+
     def checkAndPrehandling(self, settings: Namespace):
         curFile = Path(__file__)
 
@@ -144,6 +146,18 @@ class Config:
         if not dataPath.exists():
             dataPath.mkdir()
 
+        if settings.forwardingURL is not None:
+            self.forwarding_url = settings.forwardingURL
+
+        if settings.workflowURL is not None:
+            self.workflow_url = settings.workflowURL
+
+        if self.workflow_url is not None and self.forwarding_url is None:
+            raise Exception(f"workflow controller is set with {self.workflow_url}, but forwarding url is not set")
+
+        if self.workflow_url is None and self.forwarding_url is not None:
+            raise Exception(f"forwarding url is set with {self.forwarding_url}, but workflow controller url is not set")
+
         os.environ["dataPath"] = self.dataPath
         os.environ["swagger"] = self.swagger
         os.environ["patternFile"] = self.patterns
@@ -197,7 +211,10 @@ if __name__ == "__main__":
                         type=float, required=False, default=.10)
     parser.add_argument('--forwardingURL',
                         help='set if the forwarding proxy is running',
-                        type=str, required=False, default="")
+                        type=str, required=False, default=None)
+    parser.add_argument('--workflowURL',
+                        help='set if the workflow controller is running',
+                        type=str, required=False, default=None)
 
     args = parser.parse_args()
 

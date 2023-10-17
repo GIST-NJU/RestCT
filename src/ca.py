@@ -137,7 +137,7 @@ class Executor:
     def assemble(operation, responses) -> dict:
         url = operation.url
         headers = {
-            'Content-Type': 'application/json',
+            'Content-Type': operation.header[0] if operation.header is not None else "applications/json",
             'user-agent': 'my-app/0.0.1'
         }
         params = dict()
@@ -320,7 +320,8 @@ class RuntimeInfoManager:
         PUBLIC_ENUMS = {
             'ValueType': ValueType,
             'DataType': DataType,
-            'Method': Method
+            'Method': Method,
+            'Operation': Operation
         }
 
         def default(self, obj):
@@ -329,7 +330,7 @@ class RuntimeInfoManager:
             return json.JSONEncoder.default(self, obj)
 
     def save_bug(self, operation, case, sc, response, chain, data_path):
-        op_str_set = {d.get("method") + d.get("url") + str(d.get("statusCode")) for d in self._bug_list}
+        op_str_set = {d.get("method").name + d.get("url") + str(d.get("statusCode")) for d in self._bug_list}
         if operation.method.name + operation.url + str(sc) in op_str_set:
             return
         bug_info = {
@@ -338,7 +339,7 @@ class RuntimeInfoManager:
             "parameters": {paramName: dataclasses.asdict(value) for paramName, value in case.items()},
             "statusCode": sc,
             "response": response,
-            "responseChain": chain
+            "responseChain": [op.__repr__() for op in chain]
         }
         self._bug_list.append(bug_info)
 
@@ -461,17 +462,20 @@ class CA:
         logger.info(f"{index + 1}-th operation essential parameters covering array size: {len(e_ca)}, "
                     f"parameters: {len(e_ca[0]) if len(e_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
-        is_break = self._executes(operation, e_ca, chain, success_url_tuple, history, True)
+        is_break_e = self._executes(operation, e_ca, chain, success_url_tuple, history, True)
 
         if all([p.isEssential for p in operation.parameterList]):
-            return is_break
+            return is_break_e
 
         # todo history is not None, add return values of executes
         a_ca = self._handle_all_params(operation, sequence[:index], chain, history)
         logger.info(f"{index + 1}-th operation all parameters covering array size: {len(a_ca)}, "
                     f"parameters: {len(a_ca[0]) if len(a_ca) > 0 else 0}, constraints: {len(operation.constraints)}")
 
-        return self._executes(operation, a_ca, chain, success_url_tuple, history, False)
+        is_break_a = self._executes(operation, a_ca, chain, success_url_tuple, history, False)
+        is_break = is_break_e or is_break_a
+
+        return is_break
 
     def _handle_essential_params(self, operation, exec_ops, chain, history):
         """

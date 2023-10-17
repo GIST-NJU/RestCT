@@ -111,10 +111,11 @@ class RestPath:
 
 
 class Operation:
-    def __init__(self, host: str, path: str, method):
+    def __init__(self, host: str, path: str, method, header):
         self._host = host
         self.path = RestPath(path)
         self.method: Method = Method(method)
+        self.header = header
 
         self.parameterList: List[AbstractParam] = list()
         self.responseList: List[Response] = list()
