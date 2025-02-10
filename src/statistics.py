@@ -25,6 +25,7 @@ class Snapshot:
     t_way_to_covered: int = 0
     t_way_covered: int = 0
     req_num: int = 0
+    req_num_all: int = 0
     req_20x_num: int = 0
     req_30x_num: int = 0
     req_40x_num: int = 0
@@ -33,13 +34,17 @@ class Snapshot:
     op_num: int = 0
     op_executed_num: int = 0
     op_success_num: int = 0
+    llm_call: int = 0
+    call_time: int = 0
+    token_nums: int = 0
+    money_cost: int = 0
     bug: int = 0
 
 
 class Statistics:
     def __init__(self, config):
         self.start = time.time()
-        self.name = config.columnId
+        self.name = config.exp_name
         self.s_s = config.s_strength
         self.e_s = config.e_strength
         self.a_s = config.a_strength
@@ -63,6 +68,7 @@ class Statistics:
         self.t_way_to_covered: int = 0  #
         self.t_way_covered: set = set()  #
         self.req_num: int = 0  #
+        self.req_num_all: int = 0  #
         self.req_20x_num: int = 0  #
         self.req_30x_num: int = 0  #
         self.req_40x_num: int = 0  #
@@ -71,7 +77,17 @@ class Statistics:
         self.op_num: set = set()  #
         self.op_executed_num: set = set()  #
         self.op_success_num: set = set()  #
+        self.llm_call: int = 0  #
+        self.call_time: int = 0  #
+        self.token_nums: int = 0  #
+        self.money_cost: int = 0  #
         self.bug: set = set()  #
+
+    def update_llm_data(self, llm_call, call_time, token_nums, cost):
+        self.llm_call += llm_call
+        self.call_time += call_time
+        self.token_nums += token_nums
+        self.money_cost += cost
 
     def update_all_c_way(self, seq):
         self.C_1_way_all.update(self._compute_combinations(seq, 1))
@@ -120,6 +136,7 @@ class Statistics:
                             self.t_way_to_covered,
                             len(self.t_way_covered),
                             self.req_num,
+                            self.req_num_all,
                             self.req_20x_num,
                             self.req_30x_num,
                             self.req_40x_num,
@@ -128,6 +145,10 @@ class Statistics:
                             len(self.op_num),
                             len(self.op_executed_num),
                             len(self.op_success_num),
+                            self.llm_call,
+                            self.call_time,
+                            self.token_nums,
+                            self.money_cost,
                             len(self.bug))
         self._snapshot_list.append(snapshot)
 
