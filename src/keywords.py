@@ -74,6 +74,26 @@ class DataType(Enum):
 
     NULL = "NONE"
 
+    @staticmethod
+    def from_string(value, value_type):
+        try:
+            if value_type in [DataType.Integer, DataType.Int32, DataType.Int64, DataType.Long]:
+                value = int(value)
+            elif value_type in [DataType.Float, DataType.Double, DataType.Number]:
+                value = float(value)
+            elif value_type in [DataType.String]:
+                value = str(value)
+            elif value_type in [DataType.Byte]:
+                value = bytes(value)
+            elif value_type in [DataType.Bool]:
+                if str(value).lower() == "true":
+                    value = True
+                else:
+                    value = False
+        except (ValueError, TypeError):
+            return value
+        return value
+
 
 class Loc(Enum):
     FormData = "formData"
@@ -90,3 +110,19 @@ class Method(Enum):
     GET = "get"
     DELETE = "delete"
     PUT = "put"
+    OPTIONS = "options"
+    HEAD = "head"
+    PATCH = "patch"
+
+    @classmethod
+    def of(cls, text: str):
+        text_lower = text.lower()
+        for member in cls.__members__.values():
+            if member.value.lower() == text_lower:
+                return member
+        else:
+            raise ValueError(f"Unknown method: {text}")
+
+
+class URL:
+    baseurl = ""
